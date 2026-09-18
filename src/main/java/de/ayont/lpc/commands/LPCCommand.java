@@ -11,12 +11,19 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class LPCCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("reload", "version", "help", "mute", "unmute");
+    private static final List<String> SUBCOMMANDS = List.of(
+            "reload", "version", "help", "mute", "unmute",
+            "slowmode", "clearchat", "cc",
+            "notifications", "stats");
     private static final List<String> TARGET_SUBCOMMANDS = List.of("mute", "unmute");
+    private static final List<String> SLOWMODE_ARGS = List.of("off");
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
     private final LPC plugin;
@@ -38,6 +45,14 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             case "version" -> handleVersion(sender);
             case "mute" -> handleMute(sender, args);
             case "unmute" -> handleUnmute(sender, args);
+            case "slowmode" -> handleSlowMode(sender, args);
+            case "clearchat", "cc" -> {
+                if (sender instanceof Player p) plugin.getClearChatService().clearChat(p);
+                else sender.sendMessage("Only players can clear chat.");
+            }
+            case "notifications" -> handleNotifications(sender, args);
+            case "stats" -> handleStats(sender, args);
+            case "help" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
         return true;
@@ -54,10 +69,10 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
         plugin.send(sender, mini(raw));
     }
 
-    @SuppressWarnings("deprecation") // getDescription() is cross-platform
+    @SuppressWarnings("deprecation")
     private void handleVersion(CommandSender sender) {
         String platform = plugin.isFolia() ? "Folia" : plugin.isPaper() ? "Paper" : "Spigot";
-        plugin.send(sender, mini("<gradient:#B754F4:#FC00FF>LPC</gradient> <gray>v<white>"
+        plugin.send(sender, mini("<gradient:#FED83D:#BE2086>LPC Chat Suite</gradient> <gray>v<white>"
                 + plugin.getDescription().getVersion() + "</white> <dark_gray>— <gray>MiniMessage chat formatter."));
         java.util.Properties build = readBuildInfo();
         plugin.send(sender, mini("<dark_gray>Build: <gray>compiled for Minecraft <white>"
@@ -68,15 +83,11 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
                 + System.getProperty("java.version") + ")"));
     }
 
-    /** Reads the build-time target descriptor baked into the jar (or empty on failure). */
     private static java.util.Properties readBuildInfo() {
         java.util.Properties props = new java.util.Properties();
         try (java.io.InputStream in = LPCCommand.class.getResourceAsStream("/lpc-build.properties")) {
-            if (in != null) {
-                props.load(in);
-            }
+            if (in != null) props.load(in);
         } catch (Exception ignored) {
-            // missing/unreadable build info is non-fatal
         }
         return props;
     }
@@ -123,27 +134,94 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
         plugin.send(sender, mini("<green>Unmuted <white><name></white>.", "name", target.getName()));
     }
 
-    private void sendHelp(CommandSender sender) {
-        plugin.send(sender, mini("<gradient:#B754F4:#FC00FF>LPC</gradient> <gray>commands:"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc reload</white> <dark_gray>» <gray>Reload the configuration"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc version</white> <dark_gray>» <gray>Show the plugin version"));
-        if (plugin.getMuteService().areCommandsEnabled()) {
-            plugin.send(sender, mini("<dark_gray>- <white>/lpc mute <player> [duration]</white> <dark_gray>» <gray>Mute a player"));
-            plugin.send(sender, mini("<dark_gray>- <white>/lpc unmute <player></white> <dark_gray>» <gray>Unmute a player"));
+    private void handleSlowMode(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("lpc.slowmode")) {
+            plugin.send(sender, mini("<red>You don't have permission to do that."));
+            return;
+        }
+        if (args.length < 2) {
+            plugin.send(sender, mini("<red>Usage: /lpc slowmode <seconds|off>"));
+            return;
+        }
+        int seconds;
+        if (args[1].equalsIgnoreCase("off")) {
+            seconds = 0;
+        } else {
+            try {
+                seconds = Math.max(0, Integer.parseInt(args[1]));
+            } catch (NumberFormatException e) {
+                plugin.send(sender, mini("<red>Invalid number: <white><arg></white>", "arg", args[1]));
+                return;
+            }
+        }
+        int newVal = plugin.getSlowModeService().setSlowMode(seconds);
+        if (newVal == 0) {
+            plugin.send(sender, mini("<green>Slow mode disabled."));
+        } else {
+            plugin.send(sender, mini("<green>Slow mode set to <white><seconds></white>s.",
+                    "seconds", Integer.toString(newVal)));
         }
     }
 
-    /** Parses durations like {@code 30s}, {@code 10m}, {@code 2h}, {@code 1d}, or plain seconds. */
-    static long parseDuration(String input) {
-        if (input == null || input.isBlank()) {
-            return 0L;
+    private void handleNotifications(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can toggle notifications.");
+            return;
         }
+        if (!player.hasPermission("lpc.notifications")) {
+            plugin.send(player, mini("<red>You don't have permission."));
+            return;
+        }
+        if (args.length < 2) {
+            boolean on = plugin.getNotificationService().toggleAll(player);
+            plugin.send(player, mini(on
+                    ? "<green>All notifications enabled.</green>"
+                    : "<red>All notifications disabled.</red>"));
+            return;
+        }
+        String type = args[1].toLowerCase();
+        boolean on = plugin.getNotificationService().toggle(player, type);
+        plugin.send(player, mini(on
+                ? "<green>Notifications for <white><type></white> enabled.</green>"
+                : "<red>Notifications for <white><type></white> disabled.</red>",
+                "type", type));
+    }
+
+    private void handleStats(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can view statistics.");
+            return;
+        }
+        if (args.length < 2) {
+            plugin.getStatisticsService().showOwnStats(player);
+        } else {
+            plugin.getStatisticsService().showOtherStats(player, args[1]);
+        }
+    }
+
+    private void sendHelp(CommandSender sender) {
+        plugin.send(sender, mini("<gradient:#FED83D:#BE2086>LPC Chat Suite</gradient> <gray>commands:"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc reload</white> <dark_gray>» <gray>Reload configuration"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc version</white> <dark_gray>» <gray>Plugin version"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc slowmode <s|off></white> <dark_gray>» <gray>Set chat slow mode"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc clearchat</white> <dark_gray>» <gray>Clear chat"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc notifications [type]</white> <dark_gray>» <gray>Toggle notifications"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc stats [player]</white> <dark_gray>» <gray>View stats"));
+        plugin.send(sender, mini("<dark_gray>- <white>/msg, /w, /r, /reply</white> <dark_gray>» <gray>Private messages"));
+        plugin.send(sender, mini("<dark_gray>- <white>/ignore <player></white> <dark_gray>» <gray>Ignore a player"));
+        plugin.send(sender, mini("<dark_gray>- <white>/staffchat (/sc)</white> <dark_gray>» <gray>Staff channel"));
+        plugin.send(sender, mini("<dark_gray>- <white>/socialspy</white> <dark_gray>» <gray>Toggle social spy"));
+        if (plugin.getMuteService().areCommandsEnabled()) {
+            plugin.send(sender, mini("<dark_gray>- <white>/lpc mute/unmute</white> <dark_gray>» <gray>Mute a player"));
+        }
+    }
+
+    static long parseDuration(String input) {
+        if (input == null || input.isBlank()) return 0L;
         String trimmed = input.trim();
         char unit = trimmed.charAt(trimmed.length() - 1);
         try {
-            if (Character.isDigit(unit)) {
-                return Long.parseLong(trimmed) * 1000L;
-            }
+            if (Character.isDigit(unit)) return Long.parseLong(trimmed) * 1000L;
             long amount = Long.parseLong(trimmed.substring(0, trimmed.length() - 1).trim());
             return switch (Character.toLowerCase(unit)) {
                 case 's' -> amount * 1000L;
@@ -157,10 +235,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private static Component mini(String raw) {
-        return MM.deserialize(raw);
-    }
-
+    private static Component mini(String raw) { return MM.deserialize(raw); }
     private static Component mini(String raw, String key, String value) {
         return MM.deserialize(raw, Placeholder.unparsed(key, value));
     }
@@ -172,12 +247,23 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             String prefix = args[0].toLowerCase();
             return SUBCOMMANDS.stream().filter(sub -> sub.startsWith(prefix)).toList();
         }
-        if (args.length == 2 && TARGET_SUBCOMMANDS.contains(args[0].toLowerCase())) {
+        if (args.length == 2) {
+            String cmd0 = args[0].toLowerCase();
             String prefix = args[1].toLowerCase();
-            return plugin.getServer().getOnlinePlayers().stream()
-                    .map(Player::getName)
-                    .filter(name -> name.toLowerCase().startsWith(prefix))
-                    .toList();
+            if (TARGET_SUBCOMMANDS.contains(cmd0) || cmd0.equals("stats")) {
+                return plugin.getServer().getOnlinePlayers().stream()
+                        .map(Player::getName)
+                        .filter(n -> n.toLowerCase().startsWith(prefix))
+                        .toList();
+            }
+            if (cmd0.equals("slowmode")) {
+                return SLOWMODE_ARGS.stream().filter(s -> s.startsWith(prefix)).toList();
+            }
+            if (cmd0.equals("notifications")) {
+                List<String> types = new ArrayList<>(plugin.getNotificationService().getAvailableTypes());
+                types.add("all");
+                return types.stream().filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
+            }
         }
         return List.of();
     }

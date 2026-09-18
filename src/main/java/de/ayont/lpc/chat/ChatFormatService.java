@@ -118,7 +118,8 @@ public final class ChatFormatService {
      *
      * @param source      the chatting player
      * @param message     the player's message, already built via {@link #messageComponent}
-     * @param displayName the player's display name component
+     * @param displayName the player's display name component (may carry hover/click set by
+     *                    PlayerHoverService for the {name} slot)
      * @return the fully rendered chat line
      */
     public Component render(Player source, Component message, Component displayName) {
@@ -131,19 +132,24 @@ public final class ChatFormatService {
         Component safeDisplayName = displayName != null ? displayName : Component.text(source.getName());
         Component styledMessage = applyMessageStyle(group, message);
 
-        // Reserve the message position FIRST, on the trusted config format, with an unguessable
-        // per-render tag. Doing this before meta-token/PlaceholderAPI substitution means nothing in a
-        // prefix, suffix or placeholder value can collide with the message token or inject the tag.
+        // Reserve BOTH message and name positions on the trusted config format with unguessable
+        // per-render tags, so the {name} component can carry click/hover set by the server (player
+        // hover) and nothing in a prefix/suffix/placeholder can inject either tag.
         String messageTag = MESSAGE_TAG_PREFIX + UUID.randomUUID().toString().replace("-", "");
-        String format = resolveFormat(group).replace(MESSAGE_TOKEN, "<" + messageTag + ">");
+        String nameTag = "lpcname" + UUID.randomUUID().toString().replace("-", "");
+        String format = resolveFormat(group)
+                .replace(MESSAGE_TOKEN, "<" + messageTag + ">")
+                .replace("{name}", "<" + nameTag + ">");
 
-        format = applyMetaTokens(format, source, metaData, safeDisplayName);
+        format = applyMetaTokens(format, source, metaData, safeDisplayName, nameTag);
 
         if (hasPapi) {
             format = PlaceholderAPI.setPlaceholders(source, format);
         }
 
-        return trustedMiniMessage.deserialize(format, Placeholder.component(messageTag, styledMessage));
+        return trustedMiniMessage.deserialize(format,
+                Placeholder.component(messageTag, styledMessage),
+                Placeholder.component(nameTag, safeDisplayName));
     }
 
     /**
@@ -154,11 +160,17 @@ public final class ChatFormatService {
     public Component renderTemplate(Player player, String template, Component displayName, TagResolver... extra) {
         CachedMetaData metaData = luckPerms.getPlayerAdapter(Player.class).getMetaData(player);
         Component safeDisplayName = displayName != null ? displayName : Component.text(player.getName());
-        String format = applyMetaTokens(template, player, metaData, safeDisplayName);
+        // For templates (join/quit/death) we don't need hover/click on the name; replace {name} literally.
+        String nameTag = "lpctplname" + UUID.randomUUID().toString().replace("-", "");
+        String format = template.replace("{name}", "<" + nameTag + ">");
+        format = applyMetaTokens(format, player, metaData, safeDisplayName, nameTag);
         if (hasPapi) {
             format = PlaceholderAPI.setPlaceholders(player, format);
         }
-        return trustedMiniMessage.deserialize(format, extra);
+        TagResolver[] all = new TagResolver[extra.length + 1];
+        all[0] = Placeholder.component(nameTag, safeDisplayName);
+        System.arraycopy(extra, 0, all, 1, extra.length);
+        return trustedMiniMessage.deserialize(format, all);
     }
 
     private Component applyMessageStyle(String group, Component message) {
@@ -207,7 +219,8 @@ public final class ChatFormatService {
         return null;
     }
 
-    private String applyMetaTokens(String format, Player source, CachedMetaData metaData, Component displayName) {
+    private String applyMetaTokens(String format, Player source, CachedMetaData metaData,
+                                    Component displayName, String nameTag) {
         return format
                 .replace("{prefix}", orEmpty(metaData.getPrefix()))
                 .replace("{suffix}", orEmpty(metaData.getSuffix()))
@@ -215,7 +228,7 @@ public final class ChatFormatService {
                 .replace("{suffixes}", String.join(" ", metaData.getSuffixes().values()))
                 .replace("{world}", source.getWorld().getName())
                 .replace("{gradient-name}", gradientName(source, metaData))
-                .replace("{name}", source.getName())
+                // {name} is replaced above with <nameTag> and resolved as a component so it can carry hover/click.
                 .replace("{displayname}", trustedMiniMessage.serialize(displayName))
                 .replace("{username-color}", orEmpty(metaData.getMetaValue("username-color")))
                 .replace("{message-color}", orEmpty(metaData.getMetaValue("message-color")));

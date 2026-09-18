@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'de.ayont'
-version = project.findProperty('project_version') ?: '4.4.0'
+version = project.findProperty('project_version') ?: '5.0.0'
 
 // ─── Single universal jar ─────────────────────────────────────────────────────
 // LPC compiles ONCE against the lowest supported platform (Paper 1.21 / Adventure 4 / Java 21,
@@ -16,12 +16,11 @@ version = project.findProperty('project_version') ?: '4.4.0'
 //     changes in Adventure 5 — e.g. ClickEvent.value() removal — are NOT used by LPC). The
 //     `crossCompatTest` task proves this by running the Adventure-4-compiled test classes against
 //     an Adventure 5 runtime, simulating exactly what a Paper 26.2 server does.
-//
-// This is why there is only one jar instead of two.
 final def PAPER = '1.21.11-R0.1-SNAPSHOT'
 final def ADVENTURE = '4.23.0'
 final def ADVENTURE_NEXT = '5.2.0' // Adventure 5 runtime, used only by crossCompatTest
 final def GSON = '2.10.1'
+final def SQLITE_JDBC = '3.46.0.0'
 final def TARGET_JAVA = 21
 final def API_VERSION = '1.21'
 
@@ -40,7 +39,7 @@ repositories {
 // Adventure 5 runtime for the cross-compat proof task (declared before dependencies below use it).
 configurations {
     crossCompatTestRuntimeOnly {
-        canBeConsumed = false
+        canConsume = false
         canBeResolved = true
     }
 }
@@ -50,6 +49,9 @@ dependencies {
     compileOnly "net.luckperms:api:$luckpermsapi"
     compileOnly "me.clip:placeholderapi:$papi"
     compileOnly "com.google.code.gson:gson:${GSON}" // provided by the server at runtime
+
+    // SQLite JDBC — shaded so LPC can run on any server without depending on a server-bundled driver.
+    implementation "org.xerial:sqlite-jdbc:${SQLITE_JDBC}"
 
     // Adventure — pinned to what Paper 1.21 bundles; shaded UNRELOCATED so on Paper it resolves
     // from the server's bundled copy (parent-first), and on Spigot (no Adventure) from this jar.
@@ -125,6 +127,8 @@ shadowJar {
         exclude 'META-INF/*.DSA'
         exclude 'META-INF/*.RSA'
     }
+    // Relocate SQLite to avoid potential classpath conflicts with other plugins shading it.
+    relocate 'org.sqlite', 'de.ayont.lpc.libs.sqlite'
 }
 
 jar {
