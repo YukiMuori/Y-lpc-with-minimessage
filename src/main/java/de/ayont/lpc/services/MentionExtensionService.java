@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 public final class MentionExtensionService {
 
     private final LPC plugin;
-    private final MiniMessage mm = MiniMessage.miniMessage();
     private final MiniMessage cosmetic = PlayerMessages.colorParser(true);
 
     private final Map<UUID, Long> everyoneCooldowns = new ConcurrentHashMap<>();
@@ -59,17 +58,11 @@ public final class MentionExtensionService {
         this.staffPermission = c.getString("mentions.staff.permission", "lpc.staffchat");
     }
 
-    /**
-     * Processes @staff and @everyone on the rendered message component. Notifications are
-     * dispatched to eligible players as a side-effect.
-     */
     public Component processSpecialMentions(Player sender, String rawText, Component message) {
         Component out = message;
         VanishService vanish = plugin.getVanishService();
         IgnoreService ignore = plugin.getIgnoreService();
 
-        // Collect eligible recipients for @everyone / @staff BEFORE replacing, so we don't
-        // iterate the online-player set once per matched occurrence.
         Set<Player> everyoneRecipients = new HashSet<>();
         Set<Player> staffRecipients = new HashSet<>();
 
@@ -106,14 +99,12 @@ public final class MentionExtensionService {
             }
         }
 
-        // @everyone replacement
         if (everyoneEnabled) {
             Component everyoneTag = cosmetic.deserialize("<gold>@everyone</gold>");
             int[] replaced = {0};
             out = out.replaceText(b -> b.match(EVERYONE).replacement((mr, tb) -> {
                 if (replaced[0] >= maxEveryonePerMessage) return tb;
                 replaced[0]++;
-                // Fire events + notifications once per recipient (not per match beyond first)
                 if (replaced[0] == 1) {
                     for (Player p : everyoneRecipients) {
                         LPCMentionEvent event = new LPCMentionEvent(true, sender, p, LPCMentionEvent.Type.EVERYONE);
@@ -128,7 +119,6 @@ public final class MentionExtensionService {
             }));
         }
 
-        // @staff replacement
         if (staffEnabled) {
             Component staffTag = cosmetic.deserialize("<gradient:#FED83D:#BE2086>@staff</gradient>");
             boolean[] notified = {false};

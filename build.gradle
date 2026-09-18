@@ -127,8 +127,6 @@ shadowJar {
         exclude 'META-INF/*.DSA'
         exclude 'META-INF/*.RSA'
     }
-    // Relocate SQLite to avoid potential classpath conflicts with other plugins shading it.
-    relocate 'org.sqlite', 'de.ayont.lpc.libs.sqlite'
 }
 
 jar {
