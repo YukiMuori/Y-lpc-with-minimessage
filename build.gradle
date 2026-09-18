@@ -39,7 +39,7 @@ repositories {
 // Adventure 5 runtime for the cross-compat proof task (declared before dependencies below use it).
 configurations {
     crossCompatTestRuntimeOnly {
-        canConsume = false
+        canBeConsumed = false
         canBeResolved = true
     }
 }
