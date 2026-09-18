@@ -1,64 +1,113 @@
-name: Gradle publish
+name: Release
 
 on:
   release:
-    types: [ created ]
+    types: [published, created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. 5.0.0)'
+        required: true
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: write
-      packages: write
 
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      # Gradle 8.14 cannot compile build scripts while running ON Java 25 (its bundled Groovy/ASM
-      # rejects class file major 69). So Gradle runs on Java 21 and the Java 25 toolchain compiles
-      # the plugin (auto-provisioned by the foojay resolver in settings.gradle).
-      - name: Set up Java 21 (Gradle runtime + 25 toolchain via foojay)
+
+      # LPC 5 compiles with Java 21 (--release 21). The resulting bytecode runs on Java 21+
+      # (Java 25 included) and api-version 1.21 is accepted by Paper 26.2 (forward-compat).
+      - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
           cache: 'gradle'
+
       - uses: gradle/actions/setup-gradle@v6
+
       - name: Configure Git
-        run: git config --global user.email "no-reply@github.com" && git config --global user.name "Github Actions"
+        run: |
+          git config --global user.email "no-reply@github.com"
+          git config --global user.name "Github Actions"
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      - name: Get commit hash
+
+      - name: Resolve version
+        id: version
         run: |
           COMMIT_HASH=$(git rev-parse --short HEAD)
-          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
-      - name: Set version
-        env:
-          RELEASE_NAME: ${{ github.event.release.name }}
-          IS_PRERELEASE: ${{ github.event.release.prerelease }}
-        run: |
-          VERSION="$RELEASE_NAME"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+            # Strip leading 'v' if tag is e.g. v5.0.0
+            VERSION="${VERSION#v}"
+            IS_PRERELEASE="${{ github.event.release.prerelease }}"
+          fi
+
           if [ "$IS_PRERELEASE" = "true" ]; then
-            FULL_VERSION="${VERSION}-commit-${COMMIT_HASH}"
-            echo "VERSION_TYPE=beta" >> "$GITHUB_ENV"
+            FULL_VERSION="${VERSION}-${COMMIT_HASH}"
+            echo "version_type=beta" >> "$GITHUB_OUTPUT"
           else
             FULL_VERSION="${VERSION}"
-            echo "VERSION_TYPE=release" >> "$GITHUB_ENV"
+            echo "version_type=release" >> "$GITHUB_OUTPUT"
           fi
-          echo "Setting version to $FULL_VERSION"
+
+          echo "Resolved version: $FULL_VERSION"
           sed -i "s/^project_version = .*/project_version = ${FULL_VERSION}/" gradle.properties
-          echo "FULL_VERSION=$FULL_VERSION" >> "$GITHUB_ENV"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-      - name: Build jar (incl. tests + cross-compat proof)
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=$COMMIT_HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Build & test (with cross-compat proof)
         run: |
-          ./gradlew clean
-          ./gradlew build --no-daemon --stacktrace --refresh-dependencies
+          ./gradlew clean build crossCompatTest --no-daemon --stacktrace
+          echo "--- Built artifacts ---"
           ls -la build/libs/
-      - name: Upload release asset
+
+      - name: Generate SHA-256 checksum
+        run: |
+          cd build/libs
+          sha256sum LPC-${{ steps.version.outputs.full_version }}.jar > LPC-${{ steps.version.outputs.full_version }}.jar.sha256
+          cat LPC-${{ steps.version.outputs.full_version }}.jar.sha256
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/libs/LPC-*.jar
+          name: LPC v${{ steps.version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ steps.version.outputs.version_type == 'beta' }}
+          files: |
+            build/libs/LPC-${{ steps.version.outputs.full_version }}.jar
+            build/libs/LPC-${{ steps.version.outputs.full_version }}.jar.sha256
           fail_on_unmatched_files: true
+          body: |
+            ## LPC Chat Suite v${{ steps.version.outputs.version }}
+
+            **Commit:** `${{ steps.version.outputs.commit }}`
+
+            ### Download
+            - `LPC-${{ steps.version.outputs.full_version }}.jar` (universal jar — Paper/Folia/Spigot 1.21.x–26.2)
+            - `LPC-${{ steps.version.outputs.full_version }}.jar.sha256` (SHA-256 checksum)
+
+            ### Installation
+            Drop the jar into your `/plugins` folder and restart the server.
+            See [README.md](https://github.com/YukiMuori/Y-lpc-with-minimessage/blob/master/readme.md) for full documentation.
+
+            > Requires **LuckPerms**. Works with Java 21–25.
