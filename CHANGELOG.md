@@ -121,3 +121,4 @@ Major rewrite release with a new MiniMessage chat formatter, an integrated moder
 
 - Player messages cannot inject MiniMessage tags or PlaceholderAPI placeholders.
 - Interactive tags are always stripped from player input.
+
