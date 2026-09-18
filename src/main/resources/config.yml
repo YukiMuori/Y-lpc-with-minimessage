@@ -1,6 +1,6 @@
 # ┌─────────────────────────────────────────────────────────────────────┐
-# │  LPC – LuckPerms Chat Formatter                                       │
-# │  MiniMessage powered. See https://docs.advntr.dev/minimessage/        │
+# │  LPC Chat Suite V5 — MiniMessage chat formatting + social features   │
+# │  See https://docs.advntr.dev/minimessage/ for MiniMessage syntax.   │
 # └─────────────────────────────────────────────────────────────────────┘
 #
 # Set up LuckPerms meta first:
@@ -36,50 +36,90 @@ track-formats:
 #  donator_track: "<aqua>[Donator]</aqua> {name}<dark_gray> »<reset> {message}"
 
 # Enable the [item] placeholder (shows the held item, with a hover tooltip on Paper).
-# NOTE: each player ALSO needs the 'lpc.itemplaceholder' permission (default: op — ops can use it
-# immediately). Grant it to everyone with e.g.  /lp group default permission set lpc.itemplaceholder true
-# Players who type [item] without the permission get a hint in chat.
 use-item-placeholder: true
 
 # Allow players with 'lpc.chatcolor' to use <gradient> and <rainbow> tags in their messages.
-# Cosmetic colour/decoration tags are always allowed for that permission. Interactive tags
-# (click, hover, insertion, ...) are NEVER honoured in player messages, for security.
 allow-gradient-tags: true
 
-# Worlds in which LPC will NOT format chat (left to vanilla / other plugins).
+# Worlds in which LPC will NOT format chat.
 disabled-worlds: []
 
-# Check Modrinth for new versions on startup and notify players with 'lpc.update' on join.
+# Check Modrinth for new versions on startup.
 update-checker: true
 
 # Message shown after running '/lpc reload'.
-reload-message: "<green>Reloaded LPC configuration!"
+reload-message: "<green>Reloaded LPC Chat Suite configuration!"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  @Mention pings — highlight online player names; ping them (sound + action
-#  bar on Paper). Highlight only on Spigot.
+#  Advanced player hover — hover tooltip + click-to-message on player names.
+# ─────────────────────────────────────────────────────────────────────────
+player-hover:
+  enabled: true
+  click-to-message: true
+  lines:
+    - "<gradient:#FED83D:#BE2086>{name}</gradient>"
+    - "<gray>Rank: <white>{prefix}</white>"
+    - "<gray>World: <white>{world}</white>"
+    - ""
+    - "<yellow>Click to message"
+
+# ─────────────────────────────────────────────────────────────────────────
+#  @Mention pings — highlight player names, ping sound + action bar.
 # ─────────────────────────────────────────────────────────────────────────
 mentions:
   enabled: true
-  # Require an @ before the name to count as a mention.
   require-at-symbol: false
-  # How the matched name is rendered. <name> is replaced with the player's name.
   highlight-format: "<gold>@<name></gold>"
-  # Maximum number of names highlighted per message.
   max-mentions-per-message: 5
-  # Action bar shown to a mentioned player (Paper). <sender> = who mentioned them.
-  actionbar-text: "<gold>You were mentioned by <white><sender></white>"
-  # Namespaced sound played to mentioned players.
+  actionbar-text: "<gold>✦ <white>You were mentioned by <yellow><sender></yellow>"
   ping-sound: "entity.experience_orb.pickup"
   ping-volume: 1.0
   ping-pitch: 1.0
+
+  # @staff — alerts players with the configured permission.
+  staff:
+    enabled: true
+    permission: "lpc.staffchat"
+
+  # @everyone — protected by permission, per-player cooldown, and max count per message.
+  everyone:
+    enabled: true
+    permission: "lpc.mention.everyone"
+    bypass-permission: "lpc.mention.everyone.bypass"
+    cooldown: 60
+    max-per-message: 1
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Notifications — sound + actionbar (and optionally title) on events.
+# ─────────────────────────────────────────────────────────────────────────
+notifications:
+  enabled: true
+  private-message:
+    sound: "entity.experience_orb.pickup"
+    volume: 1.0
+    pitch: 1.0
+    actionbar: "<gold>✉ <white>New message from <yellow>{sender}</yellow>"
+  mention:
+    sound: "entity.experience_orb.pickup"
+    volume: 1.0
+    pitch: 1.2
+    actionbar: "<gold>✦ <white>You were mentioned by <yellow>{sender}</yellow>"
+  everyone:
+    sound: "entity.player.levelup"
+    volume: 1.0
+    pitch: 1.0
+    actionbar: "<gradient:#FED83D:#BE2086>✦ @everyone</gradient>"
+  staff:
+    sound: "entity.experience_orb.pickup"
+    volume: 1.0
+    pitch: 0.8
+    actionbar: "<gradient:#FED83D:#BE2086>✦ @staff</gradient>"
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Emoji / shortcut replacement — replace text shortcuts with glyphs.
 # ─────────────────────────────────────────────────────────────────────────
 emoji:
   enabled: true
-  # When true, only players with 'lpc.emoji' get emoji replacement.
   require-permission: false
   replacements:
     ":heart:": "❤"
@@ -90,8 +130,27 @@ emoji:
     ":note:": "♪"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  URL linkification — make links clickable (Paper) / coloured (Spigot).
-#  Requires the 'lpc.chatlinks' permission. openUrl only, never run_command.
+#  Glyphs (Nexo integration) — :alias: → <glyph:name>. Falls back to literal
+#  replacements when Nexo is not installed.
+# ─────────────────────────────────────────────────────────────────────────
+glyphs:
+  enabled: true
+  require-permission: false
+  replacements: {}
+  registry:
+    heart:
+      aliases:
+        - ":cuore:"
+        - ":heart:"
+      fallback: "❤"
+    star:
+      aliases:
+        - ":stella:"
+        - ":star:"
+      fallback: "★"
+
+# ─────────────────────────────────────────────────────────────────────────
+#  URL linkification.
 # ─────────────────────────────────────────────────────────────────────────
 link-urls:
   enabled: true
@@ -103,34 +162,27 @@ link-urls:
   max-length: 200
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Per-rank message styling — colour/decorate the player's OWN words by rank
-#  WITHOUT giving them MiniMessage power. {message} is the player's message.
+#  Per-rank message styling.
 # ─────────────────────────────────────────────────────────────────────────
 message-styles:
   enabled: false
 group-message-styles:
 #  admin: "<red>{message}</red>"
-#  donator: "<light_purple>{message}</light_purple>"
 track-message-styles:
 #  staff_track: "<aqua>{message}</aqua>"
-# Applied when no group/track style matches (leave empty for none).
 default-message-style: ""
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Gradient names — wrap {gradient-name} in a per-rank gradient. The gradient
-#  spec comes from a LuckPerms meta value (e.g. '#B754F4:#FC00FF') or the
-#  per-group fallback below.
+#  Gradient names.
 # ─────────────────────────────────────────────────────────────────────────
 gradient-names:
   enabled: false
   default-meta-key: "username-gradient"
 group-name-gradients:
 #  admin: "#FF5555:#FFAA00"
-#  donator: "#B754F4:#FC00FF"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Join / Quit / First-join / Death messages (MiniMessage). Leave a format
-#  empty to suppress that message entirely.
+#  Join / Quit / Death messages.
 # ─────────────────────────────────────────────────────────────────────────
 join-messages:
   enabled: false
@@ -143,13 +195,11 @@ quit-messages:
   format: "<dark_gray>[<red>-</red>] {prefix}{name}"
 death-messages:
   enabled: false
-  # <death-message> is the vanilla death cause.
   format: "<gray>☠ <death-message>"
   show-vanilla-cause: true
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Moderation — runs before formatting. Master switch; each filter also has
-#  its own toggle. Bypass with lpc.bypass.<spam|repeat|caps|profanity|advert>.
+#  Moderation.
 # ─────────────────────────────────────────────────────────────────────────
 moderation:
   enabled: false
@@ -168,13 +218,11 @@ caps-filter:
   enabled: true
   min-length: 8
   max-uppercase-ratio: 0.7
-  # BLOCK or LOWERCASE
   action: LOWERCASE
   message: "<red>Please don't shout."
 
 profanity-filter:
   enabled: false
-  # BLOCK or MASK
   action: MASK
   words: []
   mask-char: "*"
@@ -182,7 +230,6 @@ profanity-filter:
 
 anti-advert:
   enabled: false
-  # BLOCK or REDACT
   action: REDACT
   detect-ip: true
   allowlist: []
@@ -190,9 +237,7 @@ anti-advert:
   message: "<red>Advertising is not allowed."
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Mute — block chat for muted players. A player is muted if they hold the
-#  permission node below (set by a punishment plugin) or are temp-muted via
-#  /lpc mute <player> [duration].
+#  Mute.
 # ─────────────────────────────────────────────────────────────────────────
 mute:
   enabled: false
@@ -200,5 +245,84 @@ mute:
   permission-node: "lpc.muted"
   message: "<red>You are currently muted."
 
+# ─────────────────────────────────────────────────────────────────────────
+#  Private messages (/msg, /w, /tell, /r).
+# ─────────────────────────────────────────────────────────────────────────
+private-messages:
+  enabled: true
+  format-sender: "<gray>[<gold>You</gold> <gold>→</gold> <white>{receiver}</white>]</gray> <white>{message}"
+  format-receiver: "<gray>[<white>{sender}</white> <gold>→</gold> <gold>You</gold>]</gray> <white>{message}"
+  no-reply: "<red>No player to reply to."
+  player-not-found: "<red>Player not found."
+  player-offline: "<red>{name} is not online."
+  ignored: "<red>You cannot message that player."
+  disabled: "<red>That player has private messages disabled."
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Ignore system.
+# ─────────────────────────────────────────────────────────────────────────
+ignore:
+  enabled: true
+  bypass-permission: "lpc.ignore.bypass"
+  blocks:
+    chat: true
+    private-messages: true
+    mentions: true
+    notifications: true
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Social spy (/socialspy) — view other players' private messages.
+# ─────────────────────────────────────────────────────────────────────────
+social-spy:
+  enabled: true
+  format: "<dark_gray>[SocialSpy]</dark_gray> <gray>{sender} <dark_gray>→</dark_gray> {receiver}: <white>{message}</white>"
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Staff chat (/staffchat, /sc).
+# ─────────────────────────────────────────────────────────────────────────
+staff-chat:
+  enabled: true
+  format: "<gradient:#FED83D:#BE2086>STAFF</gradient> <gray>{name} <dark_gray>»</dark_gray> <white>{message}</white>"
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Slow mode — global chat cooldown.
+# ─────────────────────────────────────────────────────────────────────────
+slow-mode:
+  enabled: true
+  default-seconds: 0
+  wait-message: "<red>Please wait <yellow>{seconds}s</yellow> before chatting again."
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Clear chat (/clearchat, /cc).
+# ─────────────────────────────────────────────────────────────────────────
+clear-chat:
+  enabled: true
+  lines: 100
+  message: "<gray>Chat was cleared by a staff member."
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Statistics (SQLite, async, non-blocking).
+# ─────────────────────────────────────────────────────────────────────────
+statistics:
+  enabled: true
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Discord integration — disabled by default. Requires a companion bot
+#  plugin registering a DiscordService implementation; LPC itself does not
+#  bundle a Discord client. Token can be provided via ${LPC_DISCORD_TOKEN}
+#  environment variable or a companion plugin's own config.
+# ─────────────────────────────────────────────────────────────────────────
+discord:
+  enabled: false
+  bot:
+    enabled: false
+    token: "${LPC_DISCORD_TOKEN}"
+    guild-id: ""
+  channels:
+    global: ""
+    staff: ""
+  minecraft-to-discord: true
+  discord-to-minecraft: true
+
 # Internal config version. Do not edit.
-config-version: 3
+config-version: 5

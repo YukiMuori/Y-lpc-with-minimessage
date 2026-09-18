@@ -6,13 +6,34 @@ import de.ayont.lpc.chat.ItemPlaceholder;
 import de.ayont.lpc.chat.MentionService;
 import de.ayont.lpc.chat.UrlLinkifier;
 import de.ayont.lpc.commands.LPCCommand;
+import de.ayont.lpc.commands.MessageCommands;
+import de.ayont.lpc.commands.IgnoreCommand;
+import de.ayont.lpc.commands.QuickChatCommands;
+import de.ayont.lpc.database.DatabaseService;
+import de.ayont.lpc.discord.ConfiguredDiscordService;
+import de.ayont.lpc.discord.DiscordService;
+import de.ayont.lpc.hooks.NexoHook;
+import de.ayont.lpc.hooks.PlaceholderAPIHook;
+import de.ayont.lpc.hooks.VanishService;
 import de.ayont.lpc.listener.AsyncChatListener;
 import de.ayont.lpc.listener.ConnectionListener;
 import de.ayont.lpc.listener.SpigotChatListener;
+import de.ayont.lpc.listener.PlayerQuitListener;
 import de.ayont.lpc.moderation.ModerationService;
 import de.ayont.lpc.moderation.MuteService;
 import de.ayont.lpc.scheduler.Scheduler;
 import de.ayont.lpc.scheduler.Schedulers;
+import de.ayont.lpc.services.ClearChatService;
+import de.ayont.lpc.services.GlyphService;
+import de.ayont.lpc.services.IgnoreService;
+import de.ayont.lpc.services.MentionExtensionService;
+import de.ayont.lpc.services.NotificationService;
+import de.ayont.lpc.services.PlayerHoverService;
+import de.ayont.lpc.services.PlayerSettingsService;
+import de.ayont.lpc.services.PrivateMessageService;
+import de.ayont.lpc.services.SlowModeService;
+import de.ayont.lpc.services.StaffChatService;
+import de.ayont.lpc.services.StatisticsService;
 import de.ayont.lpc.update.UpdateChecker;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -41,6 +62,25 @@ public final class LPC extends JavaPlugin {
     private UrlLinkifier urlLinkifier;
     private MentionService mentionService;
 
+    // V2 services
+    private VanishService vanishService;
+    private PlaceholderAPIHook placeholderApiHook;
+    private NexoHook nexoHook;
+    private DatabaseService databaseService;
+    private NotificationService notificationService;
+    private IgnoreService ignoreService;
+    private PlayerSettingsService playerSettingsService;
+    private PrivateMessageService privateMessageService;
+    private StaffChatService staffChatService;
+    private SlowModeService slowModeService;
+    private ClearChatService clearChatService;
+    private GlyphService glyphService;
+    private StatisticsService statisticsService;
+    private MentionExtensionService mentionExtensionService;
+    private PlayerHoverService playerHoverService;
+    private DiscordService discordService;
+    private ConfiguredDiscordService configuredDiscordService;
+
     public static LegacyComponentSerializer getLegacySerializer() {
         return LEGACY_SERIALIZER;
     }
@@ -51,16 +91,54 @@ public final class LPC extends JavaPlugin {
         this.paper = detectPaper();
         this.folia = detectFolia();
         this.scheduler = Schedulers.create(this);
+
+        // Hooks (detect optional plugins)
+        this.vanishService = VanishService.detect(getServer().getPluginManager());
+        this.placeholderApiHook = PlaceholderAPIHook.create(this);
+        this.nexoHook = new NexoHook(this);
+
+        // Core chat services (from V1)
         this.chatFormatService = new ChatFormatService(this);
         this.muteService = new MuteService(this);
         this.moderationService = new ModerationService(this, muteService);
         this.emojiReplacer = new EmojiReplacer(this);
         this.urlLinkifier = new UrlLinkifier(this);
         this.mentionService = new MentionService(this);
+
+        // V2 services
+        this.databaseService = new DatabaseService(this);
+        databaseService.initialize();
+        this.playerSettingsService = new PlayerSettingsService();
+        this.notificationService = new NotificationService(this);
+        this.ignoreService = new IgnoreService(this);
+        this.privateMessageService = new PrivateMessageService(this);
+        this.staffChatService = new StaffChatService(this);
+        this.slowModeService = new SlowModeService(this);
+        this.clearChatService = new ClearChatService(this);
+        this.glyphService = new GlyphService(this, nexoHook);
+        this.statisticsService = new StatisticsService(this, databaseService);
+        this.mentionExtensionService = new MentionExtensionService(this);
+        this.playerHoverService = new PlayerHoverService(this, placeholderApiHook);
+        this.configuredDiscordService = new ConfiguredDiscordService(this);
+        this.discordService = configuredDiscordService;
+
         registerCommand();
         registerListeners();
         startUpdateChecker();
         logRuntimePlatform();
+        logIntegrations();
+    }
+
+    private void logIntegrations() {
+        if (!"none".equals(vanishService.providerName())) {
+            getLogger().info("Vanish integration enabled: " + vanishService.providerName());
+        }
+        if (nexoHook.isAvailable()) {
+            getLogger().info("Nexo detected. Glyph integration enabled.");
+        }
+        if (placeholderApiHook.isAvailable()) {
+            getLogger().info("PlaceholderAPI detected.");
+        }
     }
 
     /** Logs the detected server + Java version — the single universal jar runs on many, so make
@@ -106,33 +184,38 @@ public final class LPC extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (scheduler != null) {
-            scheduler.cancelAll();
-        }
+        if (discordService != null) discordService.shutdown();
+        if (databaseService != null) databaseService.close();
+        if (scheduler != null) scheduler.cancelAll();
     }
 
-    public ChatFormatService getChatFormatService() {
-        return chatFormatService;
-    }
+    public ChatFormatService getChatFormatService() { return chatFormatService; }
+    public ModerationService getModerationService() { return moderationService; }
+    public MuteService getMuteService() { return muteService; }
+    public EmojiReplacer getEmojiReplacer() { return emojiReplacer; }
+    public UrlLinkifier getUrlLinkifier() { return urlLinkifier; }
+    public MentionService getMentionService() { return mentionService; }
 
-    public ModerationService getModerationService() {
-        return moderationService;
-    }
+    public VanishService getVanishService() { return vanishService; }
+    public PlaceholderAPIHook getPlaceholderApiHook() { return placeholderApiHook; }
+    public NexoHook getNexoHook() { return nexoHook; }
+    public DatabaseService getDatabaseService() { return databaseService; }
+    public NotificationService getNotificationService() { return notificationService; }
+    public IgnoreService getIgnoreService() { return ignoreService; }
+    public PlayerSettingsService getPlayerSettingsService() { return playerSettingsService; }
+    public PrivateMessageService getPrivateMessageService() { return privateMessageService; }
+    public StaffChatService getStaffChatService() { return staffChatService; }
+    public SlowModeService getSlowModeService() { return slowModeService; }
+    public ClearChatService getClearChatService() { return clearChatService; }
+    public GlyphService getGlyphService() { return glyphService; }
+    public StatisticsService getStatisticsService() { return statisticsService; }
+    public MentionExtensionService getMentionExtensionService() { return mentionExtensionService; }
+    public PlayerHoverService getPlayerHoverService() { return playerHoverService; }
+    public DiscordService getDiscordService() { return discordService; }
 
-    public MuteService getMuteService() {
-        return muteService;
-    }
-
-    public EmojiReplacer getEmojiReplacer() {
-        return emojiReplacer;
-    }
-
-    public UrlLinkifier getUrlLinkifier() {
-        return urlLinkifier;
-    }
-
-    public MentionService getMentionService() {
-        return mentionService;
+    /** Allow an external plugin to override the Discord bridge implementation. */
+    public void setDiscordService(DiscordService service) {
+        this.discordService = service == null ? DiscordService.disabled() : service;
     }
 
     /** Re-reads config-derived state for every service. Call after {@code reloadConfig()}. */
@@ -143,6 +226,17 @@ public final class LPC extends JavaPlugin {
         emojiReplacer.reload();
         urlLinkifier.reload();
         mentionService.reload();
+        notificationService.reload();
+        ignoreService.reload();
+        privateMessageService.reload();
+        staffChatService.reload();
+        slowModeService.reload();
+        clearChatService.reload();
+        glyphService.reload();
+        statisticsService.reload();
+        mentionExtensionService.reload();
+        playerHoverService.reload();
+        if (configuredDiscordService != null) configuredDiscordService.reload();
     }
 
     /** @return whether chat formatting is disabled in the given world. */
@@ -179,6 +273,13 @@ public final class LPC extends JavaPlugin {
         LPCCommand executor = new LPCCommand(this);
         command.setExecutor(executor);
         command.setTabCompleter(executor);
+
+        // Private message commands (/msg, /w, /tell, /r, /reply)
+        MessageCommands.register(this);
+        // /ignore
+        IgnoreCommand.register(this);
+        // /staffchat, /sc, /clearchat, /cc (quick commands)
+        QuickChatCommands.register(this);
     }
 
     private void registerListeners() {
@@ -189,6 +290,7 @@ public final class LPC extends JavaPlugin {
             pluginManager.registerEvents(new SpigotChatListener(this), this);
         }
         pluginManager.registerEvents(new ConnectionListener(this), this);
+        pluginManager.registerEvents(new PlayerQuitListener(this), this);
     }
 
     private void startUpdateChecker() {

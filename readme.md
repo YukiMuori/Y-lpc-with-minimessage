@@ -6,29 +6,18 @@
   </a>
 </p>
 
-<p align="center">
-  <a href="https://discord.gg/ZPyb9g6Gs4">
-    <img src="https://img.shields.io/discord/1322873747535040512" alt="Discord">
-  </a>
-  <a href="https://github.com/Ayont/LPC-with-minimessage/actions/workflows/publish.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/Ayont/LPC-with-minimessage/publish.yml" alt="Build Status">
-  </a>
-  <a href="https://github.com/Ayont/LPC-with-minimessage/releases">
-    <img src="https://img.shields.io/github/v/release/Ayont/LPC-with-minimessage" alt="Latest Release">
-  </a>
-</p>
+# LPC Chat Suite V5 ✨
+**A complete MiniMessage chat formatting, social, moderation and statistics suite for LuckPerms.**
 
-# LPC – LuckPerms Chat Formatter ✨
-**A flexible chat formatting plugin with MiniMessage support for LuckPerms**
-
-> Modern chat formatting powered by [MiniMessage](https://docs.advntr.dev/minimessage/format.html), full LuckPerms metadata support, group/track formats, and PlaceholderAPI.
+> Built on [MiniMessage](https://docs.advntr.dev/minimessage/format.html), tightly integrated with LuckPerms,
+> PlaceholderAPI and (optionally) Nexo glyphs. Private messages, social spy, staff chat, @staff/@everyone mentions,
+> notifications, slow mode, clear chat, ignore, chat statistics (SQLite) and Discord integration — all in one plugin.
 
 ---
 
 ## 🧩 Compatibility
 
-**One jar runs on everything.** LPC 4.4.0+ ships a **single universal jar** — no more picking the
-right build per server version.
+**One jar runs on everything.** LPC ships a **single universal jar**:
 
 | | |
 |---|---|
@@ -36,46 +25,64 @@ right build per server version.
 | **Server** | Paper, Folia or Spigot |
 | **Java** | 21+ (runs on 21 **and** 25) |
 
-How it works: the jar is compiled once against the lowest platform (Paper 1.21 / Adventure 4 / Java
-21, `api-version: 1.21`). Java 21 bytecode runs on Java 25; Paper 26.2 accepts `api-version: 1.21`
-(forward-compat); and the Adventure APIs LPC uses stay binary-compatible across Adventure 4 → 5.
-The `crossCompatTest` CI task proves this every build by running the Adventure-4-compiled tests
-against an Adventure 5 runtime — the exact thing a Paper 26.2 server does.
-
----
-
-## 🔧 Requirements
-
-- [LuckPerms](https://luckperms.net/) *(Required)* – Permissions plugin
-- [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) *(Optional)* – Additional placeholders
+Requirements:
+- **LuckPerms** *(required)*
+- **PlaceholderAPI** *(optional)* – extra placeholders
+- **Nexo** *(optional)* – for `<glyph:name>` emoji support
+- **EssentialsX / SuperVanish / PremiumVanish / CMI** *(optional)* – vanish integration auto-detected
+- A companion **Discord bot plugin** *(optional)* – provides a `DiscordService` bridge; LPC itself does not bundle a Discord client
 
 ---
 
 ## ✅ Features
 
-**Formatting**
-- Full [MiniMessage](https://docs.advntr.dev/minimessage/format.html) support, with group- and track-specific formats
-- Optional PlaceholderAPI integration and `[item]` placeholder (hover tooltip on Paper). `[item]` needs the `lpc.itemplaceholder` permission (default: **op** — ops can use it immediately; grant it to the default group to enable for everyone)
-- Per-rank message styling and per-rank **gradient names** (`{gradient-name}`)
+**Chat Formatting**
+- Full MiniMessage support with group- and track-specific formats
+- Per-rank message styling and per-rank gradient names (`{gradient-name}`)
+- Advanced player hover tooltip + click-to-message (`/w <name>`)
+- Optional PlaceholderAPI integration and `[item]` placeholder
 - Per-world toggle via `disabled-worlds`
 
-**Social** *(on by default)*
-- **@Mention pings** – highlight online names + sound/action-bar ping (Paper)
-- **Emoji shortcuts** – e.g. `:heart:` → ❤ (fully configurable)
-- **Clickable links** – URLs become `openUrl` links on Paper, coloured on Spigot
+**Private Messages**
+- `/msg`, `/w`, `/tell` and `/reply` (`/r`) with smart last-partner tracking
+- SocialSpy for staff (`/socialspy`) to see all DMs
+- Vanish-aware: vanished players are not revealed to players who cannot see them
+- Respects ignore lists
+
+**Social**
+- **@Mention pings** – highlight online names + sound/action-bar ping
+- **@staff** – ping only staff members (permission configurable)
+- **@everyone** – protected by permission, per-player cooldown and max-per-message limits
+- **Emoji shortcuts** (`:heart:` → ❤) and **Nexo glyph aliases** (`:cuore:` → `<glyph:heart>`)
+- **Clickable links** (openUrl only, never runCommand)
+
+**Staff Tools**
+- **Staff chat** (`/sc`, `/staffchat`) – toggleable channel, or one-shot messages
+- **Ignore system** (`/ignore`) – per-player block list for chat, DMs, mentions and notifications
+- **Slow mode** (`/lpc slowmode <seconds|off>`) with bypass permission
+- **Clear chat** (`/clearchat`, `/cc`) – visual-only; logs preserved
+- **Notifications** – sound + actionbar per event type; individually toggleable
 
 **Moderation** *(off by default)*
-- Anti-spam cooldown, repeated-message blocker, caps filter, profanity mask, anti-advertising
-- Per-player **mute** (`/lpc mute`) + LuckPerms mute node for punishment plugins
+- Anti-spam, repeat, caps, profanity, anti-advertising filters
+- Per-player mute (`/lpc mute`) + LuckPerms mute node support
+
+**Statistics**
+- SQLite backend (`plugins/LPC/data.db`), fully async (never blocks the main thread)
+- `/lpc stats [player]` — messages sent, DMs, mentions, glyphs, blocks, etc.
+
+**Discord** *(optional)*
+- Service abstraction (`DiscordService`) for a companion bot plugin to implement
+- MC→Discord and Discord→MC hooks for global chat, staff chat, join/quit/death events
+- **No Discord library is bundled in LPC**; the token is never hardcoded
 
 **Server messages** *(off by default)*
 - MiniMessage join / quit / first-join / death messages
 
-**Quality of life**
-- `/lpc reload · version · help · mute · unmute` with tab completion
-- Built-in Modrinth update checker
-- **Safe by design** – player messages can never inject `click`/`hover`/`insertion` events. Defence in depth: a restricted MiniMessage parser **plus** a component sanitizer that strips any interactive event from player & item-name output (closes chat click-command exploits).
-- Works on Paper, Folia (region-aware scheduling) and Spigot (legacy fallback)
+**Security**
+- Player messages are **never** parsed with the full MiniMessage parser; a restricted (cosmetic-only) parser is used, AND a component-level sanitizer strips any surviving click/hover/insertion events.
+- All click/hover events in player names and links are generated server-side; players can never inject a run_command action.
+- Discord, PlaceholderAPI and item-name input is all treated as untrusted and sanitized.
 
 ---
 
@@ -84,88 +91,156 @@ against an Adventure 5 runtime — the exact thing a Paper 26.2 server does.
 | Command | Permission | Description |
 |---------|------------|-------------|
 | `/lpc reload` | `lpc.reload` | Reload the configuration |
-| `/lpc version` | – | Show the installed version |
-| `/lpc help` | – | List available commands |
-| `/lpc mute <player> [duration]` | `lpc.mute` | Mute a player (e.g. `10m`, `2h`; omit for permanent) |
-| `/lpc unmute <player>` | `lpc.mute` | Unmute a player |
+| `/lpc version` | – | Show version info |
+| `/lpc slowmode <seconds\|off>` | `lpc.slowmode` | Set global chat cooldown |
+| `/lpc clearchat` | `lpc.clearchat` | Visually clear chat for all players |
+| `/lpc notifications [type]` | `lpc.notifications` | Toggle notifications (all / per type) |
+| `/lpc stats [player]` | `lpc.stats` / `lpc.stats.others` | View chat statistics |
+| `/lpc mute/unmute` | `lpc.mute` | Mute/unmute a player |
+| `/msg <player> <message>` | `lpc.msg` | Send a private message (aliases `/w`, `/tell`) |
+| `/reply <message>` | `lpc.reply` | Reply to last PM (alias `/r`) |
+| `/ignore [player]` | `lpc.ignore` | Toggle ignore or list ignored players |
+| `/staffchat [message]` | `lpc.staffchat` | Toggle staff mode or send a staff message (alias `/sc`) |
+| `/socialspy` | `lpc.socialspy` | Toggle SocialSpy |
 
 ---
 
 ## 🧑‍💼 Permissions
 
+Key permissions (full list in `plugin.yml`):
+
 | Permission | Default | Description |
 |------------|---------|-------------|
-| `lpc.reload` | op | Reload the configuration |
-| `lpc.chatcolor` | false | Use colour codes & cosmetic MiniMessage tags in chat |
-| `lpc.itemplaceholder` | op | Use the `[item]` placeholder in chat |
-| `lpc.update` | op | Receive an update notification on join |
-| `lpc.emoji` | true | Use emoji shortcuts (only enforced if `emoji.require-permission`) |
-| `lpc.chatlinks` | true | Have URLs turned into clickable links |
-| `lpc.mention.exempt` | false | Opt out of receiving mention pings |
-| `lpc.mute` | op | Use `/lpc mute` and `/lpc unmute` |
-| `lpc.muted` | false | Marks a player as muted (usually set by a punishment plugin) |
-| `lpc.bypass.spam` / `.repeat` / `.caps` / `.profanity` / `.advert` | op | Bypass the matching moderation filter |
-
-> ℹ️ Even with `lpc.chatcolor`, only **cosmetic** tags (colours, decorations, and optionally gradients/rainbow) are honoured in player messages. Interactive tags (`click`, `hover`, `insertion`, …) are always stripped.
+| `lpc.chatcolor` | false | Use cosmetic MiniMessage tags in chat |
+| `lpc.itemplaceholder` | op | Use `[item]` placeholder |
+| `lpc.emoji` / `lpc.glyph` | true | Use emojis / Nexo glyph aliases |
+| `lpc.msg` / `lpc.reply` | true | Send / reply to private messages |
+| `lpc.msg.bypass` | op | Bypass a target's PM disabled toggle |
+| `lpc.ignore` / `lpc.ignore.bypass` | true / op | Ignore players / cannot be ignored |
+| `lpc.socialspy` / `lpc.socialspy.bypass` | op / op | Use SocialSpy / hidden from SocialSpy |
+| `lpc.staffchat` / `lpc.staffchat.spy` | op / op | Write staff chat / read without mode |
+| `lpc.mention.staff` / `.staff.use` | op / op | Receive / send `@staff` pings |
+| `lpc.mention.everyone` / `.everyone.bypass` | op / op | Send `@everyone` / bypass cooldown |
+| `lpc.slowmode` / `.slowmode.bypass` | op / op | Set slow mode / bypass it |
+| `lpc.clearchat` / `.clearchat.bypass` | op / op | Clear chat / bypass clearing |
+| `lpc.stats` / `lpc.stats.others` | true / op | View own/others stats |
+| `lpc.vanish.see` | op | See vanished players in PM/mentions/spy |
+| `lpc.admin` | op | Grants all admin permissions |
 
 ---
 
-## ⚙️ Configuration (`config.yml`)
+## ⚙️ Configuration highlights
 
 ```yaml
-# Main chat format (MiniMessage!)
-chat-format: "{prefix}{name}<dark_gray> »<reset> {message}"
+# Player hover tooltip (applied to the {name} placeholder)
+player-hover:
+  enabled: true
+  click-to-message: true
+  lines:
+    - "<gradient:#FED83D:#BE2086>{name}</gradient>"
+    - "<gray>Rank: <white>{prefix}</white>"
+    - "<gray>World: <white>{world}</white>"
+    - ""
+    - "<yellow>Click to message"
 
-# Per-group formats (optional)
-group-formats:
-#  default: "<gray>[User]</gray> {name}<dark_gray> »<reset> {message}"
-#  admin: "<red>[Admin]</red> {name}<dark_gray> »<reset> {message}"
+# Private messages
+private-messages:
+  format-sender: "<gray>[<gold>You</gold> → <white>{receiver}</white>]</gray> <white>{message}"
+  format-receiver: "<gray>[<white>{sender}</white> → <gold>You</gold>]</gray> <white>{message}"
 
-# Per-track formats (optional) – groups take priority over tracks
-track-formats:
-#  staff_track: "<gold>[Staff]</gold> {name}<dark_gray> »<reset> {message}"
+# SocialSpy
+social-spy:
+  format: "<dark_gray>[SocialSpy]</dark_gray> <gray>{sender} → {receiver}: <white>{message}</white>"
 
-# Enable the [item] placeholder
-use-item-placeholder: true
+# Staff chat
+staff-chat:
+  format: "<gradient:#FED83D:#BE2086>STAFF</gradient> <gray>{name} » <white>{message}</white>"
 
-# Allow <gradient> / <rainbow> for players with lpc.chatcolor
-allow-gradient-tags: true
+# @everyone (permission + cooldown protected)
+mentions:
+  everyone:
+    enabled: true
+    permission: "lpc.mention.everyone"
+    cooldown: 60
+    max-per-message: 1
 
-# Worlds where LPC does NOT format chat
-disabled-worlds: []
+# Notifications
+notifications:
+  private-message:
+    sound: "entity.experience_orb.pickup"
+    actionbar: "<gold>✉ <white>New message from <yellow>{sender}</yellow>"
+  mention:
+    sound: "entity.experience_orb.pickup"
+    pitch: 1.2
+    actionbar: "<gold>✦ <white>You were mentioned by <yellow>{sender}</yellow>"
+  everyone:
+    sound: "entity.player.levelup"
+    actionbar: "<gradient:#FED83D:#BE2086>✦ @everyone</gradient>"
 
-# Check Modrinth for updates on startup
-update-checker: true
+# Glyphs (Nexo)
+glyphs:
+  enabled: true
+  registry:
+    heart:
+      aliases: [":cuore:", ":heart:"]
+      fallback: "❤"
 
-# Reload message
-reload-message: "<green>Reloaded LPC configuration!"
+# Slow mode / clear chat
+slow-mode:
+  default-seconds: 0
+clear-chat:
+  lines: 100
+
+# Statistics (SQLite, async)
+statistics:
+  enabled: true
+
+# Discord integration (disabled; requires a companion bot plugin)
+discord:
+  enabled: false
 ```
+
+See `config.yml` for the complete documentation of every section.
 
 ---
 
-## 🪄 Available Placeholders
+## 🪄 Placeholders
 
-| Placeholder | Description |
-|-------------|-------------|
-| `{message}` | The chat message (inserted safely, never re-parsed) |
-| `{name}` | Player's name |
-| `{displayname}` | Display name / nickname |
-| `{world}` | Player's current world |
-| `{prefix}` / `{suffix}` | Highest priority prefix / suffix |
-| `{prefixes}` / `{suffixes}` | All prefixes / suffixes, highest priority first |
-| `{username-color}` / `{message-color}` | Colour values from LuckPerms meta |
+Standard placeholders in formats: `{message}`, `{name}`, `{displayname}`, `{gradient-name}`, `{world}`,
+`{prefix}`, `{suffix}`, `{prefixes}`, `{suffixes}`, `{username-color}`, `{message-color}`.
 
-> ℹ️ All colour values (prefix, suffix, etc.) must be in **MiniMessage** format – no legacy codes (`&a`, `§b`).
+PlaceholderAPI `%...%` placeholders are supported when PAPI is installed, in operator-authored formats
+only — never expanded against player chat text.
+
+---
+
+## Nexo Glyph Setup
+
+1. Install [Nexo](https://www.spigotmc.org/resources/nexest-items-nexo.100880/) and define your glyphs there.
+2. In LPC's `config.yml`, list the `:alias:` → glyph mappings under `glyphs.registry`.
+3. Players type the alias (e.g. `:cuore:`) and it is replaced with `<glyph:heart>` on the server side.
+4. When Nexo is not installed the `fallback:` string is used instead (e.g. `❤`), so chat never breaks.
+
+---
+
+## Discord Setup
+
+LPC does **not** include a Discord bot directly — it exposes a `DiscordService` interface that a companion
+plugin can implement and register via `LPC#setDiscordService(...)`. This keeps LPC small and avoids bundling
+JDA for servers that do not need Discord. Set `discord.enabled: false` to leave the bridge disabled (default).
+
+The Discord → Minecraft path must treat Discord user input as **untrusted**: plain text only, no MiniMessage
+parsing, no click/hover events.
 
 ---
 
 ## 🚀 Installation
 
-1. Stop your server
-2. Drop `LPC-<version>.jar` into your `/plugins` folder
-3. Start the server to generate `config.yml`
-4. Edit the config to your liking
-5. Run `/lpc reload` to apply changes ✅
+1. Stop your server.
+2. Drop `LPC-<version>.jar` into your `/plugins` folder.
+3. Start the server to generate `config.yml`.
+4. Edit the config to your liking.
+5. Run `/lpc reload` to apply changes ✅.
 
 ---
 
@@ -176,23 +251,20 @@ reload-message: "<green>Reloaded LPC configuration!"
 # output: build/libs/LPC-<version>.jar
 ```
 
-Requires JDK 25.
+Requires JDK 21+.
 
 ---
 
 ## 📌 Notes
 
-- **Developed by [Veylor-Development](https://veylor.net)** — the team behind Veylor.NET, releasing
-  free plugins on Modrinth.
-- **Can players use MiniMessage in chat?** Yes — grant the `lpc.chatcolor` permission. Only
-  **cosmetic** tags (colours, decorations, and optionally `<gradient>`/`<rainbow>`) are honoured;
-  interactive tags (`click`, `hover`, `insertion`, …) are always stripped, so players can never
-  inject commands or fake tooltips.
-- **Not affiliated with LuckPerms** – please do not contact the LuckPerms author for support.
+- **Developed by [Veylor-Development](https://veylor.net)**.
+- **Can players use MiniMessage in chat?** Yes — grant the `lpc.chatcolor` permission. Only **cosmetic**
+  tags are honoured; interactive tags (`click`, `hover`, `insertion`, …) are always stripped.
+- **Not affiliated with LuckPerms.**
 - Legacy version available at: [GitHub Legacy LPC](https://github.com/wikmor/LPC)
 
 ---
 
 ## 📄 License
 
-Released under the [MIT License](LICENSE) — matching the license declared on Modrinth.
+Released under the MIT License.

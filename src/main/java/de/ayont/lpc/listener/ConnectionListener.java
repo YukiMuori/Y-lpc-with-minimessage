@@ -2,8 +2,10 @@ package de.ayont.lpc.listener;
 
 import de.ayont.lpc.LPC;
 import de.ayont.lpc.chat.ChatFormatService;
+import de.ayont.lpc.discord.DiscordService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -44,6 +46,8 @@ public class ConnectionListener implements Listener {
         } else {
             event.setJoinMessage(legacyOrNull(message));
         }
+        relayDiscord(message, firstJoin ? "→ " + player.getName() + " joined for the first time!"
+                : "→ " + player.getName() + " joined");
     }
 
     @EventHandler
@@ -51,12 +55,14 @@ public class ConnectionListener implements Listener {
         if (!plugin.getConfig().getBoolean("quit-messages.enabled", false)) {
             return;
         }
-        Component message = renderOrNull(event.getPlayer(), plugin.getConfig().getString("quit-messages.format", ""));
+        Player player = event.getPlayer();
+        Component message = renderOrNull(player, plugin.getConfig().getString("quit-messages.format", ""));
         if (plugin.isPaper()) {
             event.quitMessage(message);
         } else {
             event.setQuitMessage(legacyOrNull(message));
         }
+        relayDiscord(message, "← " + player.getName() + " left");
     }
 
     @SuppressWarnings("deprecation") // getDeathMessage()/setDeathMessage are the Spigot fallback
@@ -90,6 +96,18 @@ public class ConnectionListener implements Listener {
         } else {
             event.setDeathMessage(legacyOrNull(message));
         }
+        relayDiscord(message, "☠ " + (message != null
+                ? PlainTextComponentSerializer.plainText().serialize(message)
+                : player.getName() + " died"));
+    }
+
+    private void relayDiscord(Component minecraftMessage, String fallbackPlain) {
+        DiscordService ds = plugin.getDiscordService();
+        if (!ds.isEnabled()) return;
+        String plain = minecraftMessage != null
+                ? PlainTextComponentSerializer.plainText().serialize(minecraftMessage)
+                : fallbackPlain;
+        ds.broadcastEvent(plain);
     }
 
     private Component renderOrNull(Player player, String template) {

@@ -5,13 +5,35 @@ api-version: '${apiVersion}'
 folia-supported: true
 authors: [Ayont, Veylor-Development]
 depend: [LuckPerms]
-softdepend: [PlaceholderAPI]
-description: Flexible MiniMessage chat formatter for LuckPerms (Minecraft 26.2 / Java 25 / Adventure 5)
+softdepend: [PlaceholderAPI, Nexo, Essentials, SuperVanish, PremiumVanish, CMI]
+description: LPC Chat Suite — MiniMessage chat formatter with private messages, social spy, staff chat, notifications, glyphs, statistics, and Discord integration.
 website: https://modrinth.com/plugin/lpc-chat
 commands:
   lpc:
-    description: LPC chat formatter commands.
-    usage: "Usage: /lpc <reload|version|help>"
+    description: LPC Chat Suite main command.
+    usage: "Usage: /lpc <reload|version|help|mute|unmute|slowmode|clearchat|notifications|stats>"
+  msg:
+    description: Send a private message to a player.
+    usage: "/msg <player> <message>"
+    aliases: [w, tell]
+  reply:
+    description: Reply to the last private message.
+    usage: "/reply <message>"
+    aliases: [r]
+  ignore:
+    description: Ignore a player or list ignored players.
+    usage: "/ignore [player]"
+  staffchat:
+    description: Toggle staff-chat mode or send a one-shot staff message.
+    usage: "/staffchat [message]"
+    aliases: [sc]
+  clearchat:
+    description: Clear the chat visually for all players.
+    usage: "/clearchat"
+    aliases: [cc]
+  socialspy:
+    description: Toggle SocialSpy for private messages.
+    usage: "/socialspy"
 permissions:
   lpc.reload:
     description: Allows reloading the LPC configuration.
@@ -20,13 +42,16 @@ permissions:
     description: Allows using colour codes and cosmetic MiniMessage tags in chat.
     default: false
   lpc.itemplaceholder:
-    description: Allows using the [item] placeholder in chat. Ops get this by default; grant it to a group (e.g. /lp group default permission set lpc.itemplaceholder true) to enable for everyone.
+    description: Allows using the [item] placeholder in chat.
     default: op
   lpc.update:
-    description: Receive an update notification on join when a new version is available.
+    description: Receive an update notification on join.
     default: op
   lpc.emoji:
-    description: Use emoji shortcuts in chat (only enforced when emoji.require-permission is true).
+    description: Use emoji shortcuts in chat.
+    default: true
+  lpc.glyph:
+    description: Use glyph aliases (:cuore:, :heart:, etc.) when Nexo is installed.
     default: true
   lpc.chatlinks:
     description: Have URLs in your messages turned into clickable links.
@@ -38,7 +63,7 @@ permissions:
     description: Use /lpc mute and /lpc unmute.
     default: op
   lpc.muted:
-    description: Marks a player as muted (usually granted by a punishment plugin).
+    description: Marks a player as muted.
     default: false
   lpc.bypass.spam:
     description: Bypass the anti-spam cooldown.
@@ -54,4 +79,83 @@ permissions:
     default: op
   lpc.bypass.advert:
     description: Bypass the anti-advertising filter.
+    default: op
+  # ── V2 permissions ─────────────────────────────────────────────────────
+  lpc.msg:
+    description: Send private messages via /msg, /w, /tell.
+    default: true
+  lpc.msg.bypass:
+    description: Bypass players' private-message disabled toggle.
+    default: op
+  lpc.reply:
+    description: Reply to private messages via /r or /reply.
+    default: true
+  lpc.ignore:
+    description: Ignore other players.
+    default: true
+  lpc.ignore.bypass:
+    description: Cannot be ignored by other players.
+    default: op
+  lpc.socialspy:
+    description: View private messages of other players via SocialSpy.
+    default: op
+  lpc.socialspy.bypass:
+    description: Your private messages are hidden from SocialSpy.
+    default: op
+  lpc.staffchat:
+    description: Read and write in staff chat.
+    default: op
+  lpc.staffchat.spy:
+    description: Receive staff chat messages without being in staff mode.
+    default: op
+  lpc.mention.staff:
+    description: Receive @staff pings.
+    default: op
+  lpc.mention.staff.use:
+    description: Use @staff in chat.
+    default: op
+  lpc.mention.everyone:
+    description: Use @everyone in chat.
+    default: op
+  lpc.mention.everyone.bypass:
+    description: Bypass @everyone cooldown.
+    default: op
+  lpc.notifications:
+    description: Toggle chat notifications for yourself.
+    default: true
+  lpc.slowmode:
+    description: Set chat slow mode.
+    default: op
+  lpc.slowmode.bypass:
+    description: Bypass chat slow mode.
+    default: op
+  lpc.clearchat:
+    description: Clear the chat for all players.
+    default: op
+  lpc.clearchat.bypass:
+    description: Bypass chat clearing (your chat is not cleared).
+    default: op
+  lpc.stats:
+    description: View your own chat statistics.
+    default: true
+  lpc.stats.others:
+    description: View other players' statistics.
+    default: op
+  lpc.admin:
+    description: Grants all LPC admin permissions.
+    default: op
+    children:
+      lpc.reload: true
+      lpc.mute: true
+      lpc.slowmode: true
+      lpc.clearchat: true
+      lpc.stats.others: true
+      lpc.socialspy: true
+      lpc.staffchat: true
+      lpc.msg.bypass: true
+      lpc.mention.everyone: true
+      lpc.mention.everyone.bypass: true
+      lpc.ignore.bypass: true
+  lpc.vanish.see:
+    description: See vanished players in private messages, mentions and social spy.
     default: op
