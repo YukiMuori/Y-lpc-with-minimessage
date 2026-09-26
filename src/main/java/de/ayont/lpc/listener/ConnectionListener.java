@@ -15,8 +15,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
  * Replaces the vanilla join / quit / first-join / death messages with operator-authored MiniMessage
- * templates. These events fire on the main thread, so config is read directly. No player chat text
- * is involved; the death cause is injected as a pre-built component via a placeholder.
+ * templates. When {@code join-messages.per-group} is enabled, per-group/track overrides from
+ * {@link de.ayont.lpc.services.JoinLeaveService} take precedence and a join sound may play to the
+ * joining player.
  */
 public class ConnectionListener implements Listener {
 
@@ -30,33 +31,64 @@ public class ConnectionListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (!plugin.getConfig().getBoolean("join-messages.enabled", false)) {
-            return;
-        }
         Player player = event.getPlayer();
         boolean firstJoin = !player.hasPlayedBefore()
                 && plugin.getConfig().getBoolean("join-messages.first-join.enabled", false);
-        String template = firstJoin
-                ? plugin.getConfig().getString("join-messages.first-join.format", "")
-                : plugin.getConfig().getString("join-messages.format", "");
 
-        Component message = renderOrNull(player, template);
+        Component message;
+        if (plugin.getJoinLeaveService().isEnabled()) {
+            message = plugin.getJoinLeaveService().renderJoin(player, firstJoin);
+        } else {
+            if (!plugin.getConfig().getBoolean("join-messages.enabled", false)) {
+                message = null;
+            } else {
+                String template = firstJoin
+                        ? plugin.getConfig().getString("join-messages.first-join.format", "")
+                        : plugin.getConfig().getString("join-messages.format", "");
+                message = renderOrNull(player, template);
+            }
+        }
+
         if (plugin.isPaper()) {
             event.joinMessage(message);
         } else {
             event.setJoinMessage(legacyOrNull(message));
         }
+
+        // Play join sound (to the joining player)
+        if (plugin.getJoinLeaveService().isEnabled()) {
+            plugin.getJoinLeaveService().playJoinSound(player);
+        } else {
+            String sound = plugin.getConfig().getString("join-messages.sound");
+            if (sound != null && !sound.isEmpty()) {
+                float vol = (float) plugin.getConfig().getDouble("join-messages.sound-volume", 1.0);
+                float pitch = (float) plugin.getConfig().getDouble("join-messages.sound-pitch", 1.0);
+                try { player.playSound(player.getLocation(), sound, vol, pitch); } catch (Exception ignored) {}
+            }
+        }
+
         relayDiscord(message, firstJoin ? "→ " + player.getName() + " joined for the first time!"
                 : "→ " + player.getName() + " joined");
+
+        // Inbox reminder — 1s delay so join messages settle
+        plugin.getScheduler().runDelayed(() -> {
+            if (player.isOnline()) plugin.getInboxService().onJoin(player);
+        }, 20L);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (!plugin.getConfig().getBoolean("quit-messages.enabled", false)) {
-            return;
-        }
         Player player = event.getPlayer();
-        Component message = renderOrNull(player, plugin.getConfig().getString("quit-messages.format", ""));
+        Component message;
+        if (plugin.getJoinLeaveService().isEnabled()) {
+            message = plugin.getJoinLeaveService().renderQuit(player);
+        } else {
+            if (!plugin.getConfig().getBoolean("quit-messages.enabled", false)) {
+                message = null;
+            } else {
+                message = renderOrNull(player, plugin.getConfig().getString("quit-messages.format", ""));
+            }
+        }
         if (plugin.isPaper()) {
             event.quitMessage(message);
         } else {
@@ -65,12 +97,10 @@ public class ConnectionListener implements Listener {
         relayDiscord(message, "← " + player.getName() + " left");
     }
 
-    @SuppressWarnings("deprecation") // getDeathMessage()/setDeathMessage are the Spigot fallback
+    @SuppressWarnings("deprecation")
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
-        if (!plugin.getConfig().getBoolean("death-messages.enabled", false)) {
-            return;
-        }
+        if (!plugin.getConfig().getBoolean("death-messages.enabled", false)) return;
         Player player = event.getEntity();
         String template = plugin.getConfig().getString("death-messages.format", "");
         boolean showVanilla = plugin.getConfig().getBoolean("death-messages.show-vanilla-cause", true);
@@ -111,9 +141,7 @@ public class ConnectionListener implements Listener {
     }
 
     private Component renderOrNull(Player player, String template) {
-        if (template == null || template.isEmpty()) {
-            return null; // suppress the message
-        }
+        if (template == null || template.isEmpty()) return null;
         return service.renderTemplate(player, template, plugin.displayNameOf(player));
     }
 

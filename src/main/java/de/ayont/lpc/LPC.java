@@ -3,6 +3,7 @@ package de.ayont.lpc;
 import de.ayont.lpc.chat.ChatFormatService;
 import de.ayont.lpc.chat.EmojiReplacer;
 import de.ayont.lpc.chat.ItemPlaceholder;
+import de.ayont.lpc.chat.ItemShowService;
 import de.ayont.lpc.chat.MentionService;
 import de.ayont.lpc.chat.UrlLinkifier;
 import de.ayont.lpc.commands.LPCCommand;
@@ -23,9 +24,13 @@ import de.ayont.lpc.moderation.ModerationService;
 import de.ayont.lpc.moderation.MuteService;
 import de.ayont.lpc.scheduler.Scheduler;
 import de.ayont.lpc.scheduler.Schedulers;
+import de.ayont.lpc.services.AnnouncementService;
+import de.ayont.lpc.services.BossBarService;
 import de.ayont.lpc.services.ClearChatService;
 import de.ayont.lpc.services.GlyphService;
 import de.ayont.lpc.services.IgnoreService;
+import de.ayont.lpc.services.InboxService;
+import de.ayont.lpc.services.JoinLeaveService;
 import de.ayont.lpc.services.MentionExtensionService;
 import de.ayont.lpc.services.NotificationService;
 import de.ayont.lpc.services.PlayerHoverService;
@@ -43,6 +48,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public final class LPC extends JavaPlugin {
 
@@ -61,6 +67,7 @@ public final class LPC extends JavaPlugin {
     private EmojiReplacer emojiReplacer;
     private UrlLinkifier urlLinkifier;
     private MentionService mentionService;
+    private ItemShowService itemShowService;
 
     // V2 services
     private VanishService vanishService;
@@ -80,6 +87,12 @@ public final class LPC extends JavaPlugin {
     private PlayerHoverService playerHoverService;
     private DiscordService discordService;
     private ConfiguredDiscordService configuredDiscordService;
+    private BossBarService bossBarService;
+    private JoinLeaveService joinLeaveService;
+    private InboxService inboxService;
+    private AnnouncementService announcementService;
+
+    private BukkitTask inboxTickTask;
 
     public static LegacyComponentSerializer getLegacySerializer() {
         return LEGACY_SERIALIZER;
@@ -104,13 +117,17 @@ public final class LPC extends JavaPlugin {
         this.emojiReplacer = new EmojiReplacer(this);
         this.urlLinkifier = new UrlLinkifier(this);
         this.mentionService = new MentionService(this);
+        this.itemShowService = new ItemShowService(this);
 
         // V2 services
         this.databaseService = new DatabaseService(this);
         databaseService.initialize();
         this.playerSettingsService = new PlayerSettingsService();
         this.notificationService = new NotificationService(this);
+        this.bossBarService = new BossBarService(this);
         this.ignoreService = new IgnoreService(this);
+        this.joinLeaveService = new JoinLeaveService(this);
+        this.inboxService = new InboxService(this);
         this.privateMessageService = new PrivateMessageService(this);
         this.staffChatService = new StaffChatService(this);
         this.slowModeService = new SlowModeService(this);
@@ -121,9 +138,11 @@ public final class LPC extends JavaPlugin {
         this.playerHoverService = new PlayerHoverService(this, placeholderApiHook);
         this.configuredDiscordService = new ConfiguredDiscordService(this);
         this.discordService = configuredDiscordService;
+        this.announcementService = new AnnouncementService(this);
 
         registerCommand();
         registerListeners();
+        startInboxTicker();
         startUpdateChecker();
         logRuntimePlatform();
         logIntegrations();
@@ -139,10 +158,14 @@ public final class LPC extends JavaPlugin {
         if (placeholderApiHook.isAvailable()) {
             getLogger().info("PlaceholderAPI detected.");
         }
+        if (itemShowService.isEnabled() && paper) {
+            getLogger().info("Item sprite rendering enabled (use [i] or [item] in chat).");
+        }
+        if (announcementService != null) {
+            getLogger().info("Auto-announcements system loaded from announcements.yml.");
+        }
     }
 
-    /** Logs the detected server + Java version — the single universal jar runs on many, so make
-     *  the actual runtime platform visible for support. */
     private void logRuntimePlatform() {
         getLogger().info("Running on " + getServer().getName() + " (API " + getServer().getBukkitVersion()
                 + ") on Java " + System.getProperty("java.version")
@@ -150,43 +173,27 @@ public final class LPC extends JavaPlugin {
                 + (folia ? " [Folia]" : ""));
     }
 
-    /**
-     * Tells a player why their {@code [item]} did not resolve, when {@code use-item-placeholder} is
-     * enabled but they lack the {@code lpc.itemplaceholder} permission. Called once per chat message
-     * (not per viewer), so it never spams.
-     */
+    /** Send a one-time hint to players who try [i] without permission. */
     public void maybeItemPlaceholderHint(Player player, String message) {
-        if (!getConfig().getBoolean("use-item-placeholder", false)) {
-            return;
-        }
-        if (player.hasPermission("lpc.itemplaceholder")) {
-            return;
-        }
-        if (!ItemPlaceholder.containsToken(message)) {
-            return;
-        }
+        if (!itemShowService.isEnabled()) return;
+        if (player.hasPermission("lpc.itemplaceholder")) return;
+        if (!ItemShowService.containsToken(message) && !ItemPlaceholder.containsToken(message)) return;
         send(player, MiniMessage.miniMessage().deserialize(
-                "<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Ask an admin for the "
-                        + "<white>lpc.itemplaceholder</white> permission to use <white>[item]</white> in chat."));
+                "<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Chiedi a un admin il permesso "
+                        + "<white>lpc.itemplaceholder</white> per usare <white>[i]</white> in chat."));
     }
 
-    public boolean isPaper() {
-        return paper;
-    }
-
-    public boolean isFolia() {
-        return folia;
-    }
-
-    public Scheduler getScheduler() {
-        return scheduler;
-    }
+    public boolean isPaper() { return paper; }
+    public boolean isFolia() { return folia; }
+    public Scheduler getScheduler() { return scheduler; }
 
     @Override
     public void onDisable() {
+        if (announcementService != null) announcementService.shutdown();
         if (discordService != null) discordService.shutdown();
         if (databaseService != null) databaseService.close();
         if (scheduler != null) scheduler.cancelAll();
+        if (inboxTickTask != null) { inboxTickTask.cancel(); inboxTickTask = null; }
     }
 
     public ChatFormatService getChatFormatService() { return chatFormatService; }
@@ -195,6 +202,7 @@ public final class LPC extends JavaPlugin {
     public EmojiReplacer getEmojiReplacer() { return emojiReplacer; }
     public UrlLinkifier getUrlLinkifier() { return urlLinkifier; }
     public MentionService getMentionService() { return mentionService; }
+    public ItemShowService getItemShowService() { return itemShowService; }
 
     public VanishService getVanishService() { return vanishService; }
     public PlaceholderAPIHook getPlaceholderApiHook() { return placeholderApiHook; }
@@ -212,22 +220,30 @@ public final class LPC extends JavaPlugin {
     public MentionExtensionService getMentionExtensionService() { return mentionExtensionService; }
     public PlayerHoverService getPlayerHoverService() { return playerHoverService; }
     public DiscordService getDiscordService() { return discordService; }
+    public BossBarService getBossBarService() { return bossBarService; }
+    public JoinLeaveService getJoinLeaveService() { return joinLeaveService; }
+    public InboxService getInboxService() { return inboxService; }
+    public AnnouncementService getAnnouncementService() { return announcementService; }
 
-    /** Allow an external plugin to override the Discord bridge implementation. */
     public void setDiscordService(DiscordService service) {
         this.discordService = service == null ? DiscordService.disabled() : service;
     }
 
-    /** Re-reads config-derived state for every service. Call after {@code reloadConfig()}. */
+    /** Re-reads config-derived state for every service. */
     public void reloadServices() {
+        reloadConfig();
         chatFormatService.reload();
         muteService.reload();
         moderationService.reload();
         emojiReplacer.reload();
         urlLinkifier.reload();
         mentionService.reload();
+        itemShowService.reload();
         notificationService.reload();
+        bossBarService.reload();
         ignoreService.reload();
+        joinLeaveService.reload();
+        inboxService.reload();
         privateMessageService.reload();
         staffChatService.reload();
         slowModeService.reload();
@@ -237,25 +253,21 @@ public final class LPC extends JavaPlugin {
         mentionExtensionService.reload();
         playerHoverService.reload();
         if (configuredDiscordService != null) configuredDiscordService.reload();
+        if (announcementService != null) announcementService.reload();
     }
 
-    /** @return whether chat formatting is disabled in the given world. */
     public boolean isDisabledWorld(String worldName) {
         for (String world : getConfig().getStringList("disabled-worlds")) {
-            if (world.equalsIgnoreCase(worldName)) {
-                return true;
-            }
+            if (world.equalsIgnoreCase(worldName)) return true;
         }
         return false;
     }
 
-    /** Resolves a player's display name as a component on either platform. */
-    @SuppressWarnings("deprecation") // getDisplayName() is the Spigot fallback
+    @SuppressWarnings("deprecation")
     public Component displayNameOf(Player player) {
         return paper ? player.displayName() : LEGACY_SERIALIZER.deserialize(player.getDisplayName());
     }
 
-    /** Sends a component to a sender, falling back to legacy text on Spigot. */
     public void send(CommandSender target, Component component) {
         if (paper) {
             target.sendMessage(component);
@@ -274,29 +286,31 @@ public final class LPC extends JavaPlugin {
         command.setExecutor(executor);
         command.setTabCompleter(executor);
 
-        // Private message commands (/msg, /w, /tell, /r, /reply)
         MessageCommands.register(this);
-        // /ignore
         IgnoreCommand.register(this);
-        // /staffchat, /sc, /clearchat, /cc (quick commands)
         QuickChatCommands.register(this);
     }
 
     private void registerListeners() {
-        PluginManager pluginManager = getServer().getPluginManager();
+        PluginManager pm = getServer().getPluginManager();
         if (paper) {
-            pluginManager.registerEvents(new AsyncChatListener(this), this);
+            pm.registerEvents(new AsyncChatListener(this), this);
         } else {
-            pluginManager.registerEvents(new SpigotChatListener(this), this);
+            pm.registerEvents(new SpigotChatListener(this), this);
         }
-        pluginManager.registerEvents(new ConnectionListener(this), this);
-        pluginManager.registerEvents(new PlayerQuitListener(this), this);
+        pm.registerEvents(new ConnectionListener(this), this);
+        pm.registerEvents(new PlayerQuitListener(this), this);
+    }
+
+    private void startInboxTicker() {
+        // Run inbox tick every 30s on main thread
+        inboxTickTask = getServer().getScheduler().runTaskTimer(this, () -> {
+            if (inboxService != null) inboxService.tick();
+        }, 60L, 600L);
     }
 
     private void startUpdateChecker() {
-        if (!getConfig().getBoolean("update-checker", true)) {
-            return;
-        }
+        if (!getConfig().getBoolean("update-checker", true)) return;
         UpdateChecker updateChecker = new UpdateChecker(this);
         getServer().getPluginManager().registerEvents(updateChecker, this);
         updateChecker.checkAsync();

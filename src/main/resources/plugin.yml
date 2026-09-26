@@ -159,3 +159,9 @@ permissions:
   lpc.vanish.see:
     description: See vanished players in private messages, mentions and social spy.
     default: op
+  lpc.inbox:
+    description: View your PM inbox.
+    default: true
+  lpc.announcements:
+    description: Reload announcements.yml.
+    default: op

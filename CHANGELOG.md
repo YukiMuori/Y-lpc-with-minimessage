@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.1.0
+
+- **BossBar per avvisi** — nuove opzioni `bossbar.*` in ogni sezione notification. Slow mode,
+  mute, e tutti gli alert di sistema possono essere mostrati su chat, actionbar, title
+  e/o barra boss (in qualsiasi combinazione).
+- **Join/Leave per gruppo** — `join-messages.per-group` con formati e sound d'ingresso
+  personalizzati per gruppo LuckPerms o track. Aggiunto `join-messages.sound` globale.
+- **Show-item con sprite Minecraft** — `[i]`/`[item]` ora usa la font nativa
+  `minecraft:item` su Paper 1.21.5+ per mostrare l'icona reale dell'oggetto inline
+  (es. `[🗡️ Diamond Sword]`) con tooltip hover. Fallback testuale su Spigot/Paper vecchi.
+- **Inbox PM non letti** (`pm-inbox`) — i PM non risposti entro N secondi finiscono in una
+  coda; remind periodico in actionbar/chat, notifica al login, comando `/lpc inbox` per
+  leggerli e cancellarli.
+- **Auto-annunci** (`announcements.yml`) — sistema separato di broadcast automatici
+  ispirato a InfiniteAnnouncements: canali `chat`, `actionbar`, `bossbar`, `title`;
+  permessi; world filter; sound; ordine casuale o ciclico; ricaricabile con
+  `/lpc announcements reload`.
+
 ## 5.0.1 — Hotfix
 
 - Fixed `IllegalStateException: ... may only be triggered asynchronously` on

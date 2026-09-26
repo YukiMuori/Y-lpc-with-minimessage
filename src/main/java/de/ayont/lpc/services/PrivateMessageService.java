@@ -153,7 +153,13 @@ public final class PrivateMessageService {
         replyTarget.put(sender.getUniqueId(), target.getUniqueId()); // sender can /r back
         lastSentTo.put(sender.getUniqueId(), target.getUniqueId());
 
-        // Notifications for receiver (if not ignored)
+        // When sender replies to target, clear sender's unread inbox from target (they've "seen" it)
+        plugin.getInboxService().markFromAsRead(sender.getUniqueId(), target.getName());
+
+        // Queue a copy in receiver's inbox (for the reminder-on-remind-delay feature)
+        plugin.getInboxService().enqueue(target.getUniqueId(), sender.getName(), rawMessage);
+
+        // Notifications for receiver
         plugin.getNotificationService().notify(target, "private-message",
                 Map.of("sender", sender.getName()));
 

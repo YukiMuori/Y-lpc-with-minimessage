@@ -1,5 +1,5 @@
 # ┌─────────────────────────────────────────────────────────────────────┐
-# │  LPC Chat Suite V5 — MiniMessage chat formatting + social features   │
+# │  LPC Chat Suite V5.1 — MiniMessage chat formatting + social suite   │
 # │  See https://docs.advntr.dev/minimessage/ for MiniMessage syntax.   │
 # └─────────────────────────────────────────────────────────────────────┘
 #
@@ -25,7 +25,7 @@
 # Main chat format.
 chat-format: "{prefix}{name}<dark_gray> »<reset> {message}"
 
-# Per-group formats (optional). Remove the leading '#' to enable.
+# Per-group formats (optional).
 group-formats:
 #  default: "<gray>[User]</gray> {name}<dark_gray> »<reset> {message}"
 #  admin: "<red>[Admin]</red> {name}<dark_gray> »<reset> {message}"
@@ -35,8 +35,15 @@ track-formats:
 #  staff_track: "<gold>[Staff]</gold> {name}<dark_gray> »<reset> {message}"
 #  donator_track: "<aqua>[Donator]</aqua> {name}<dark_gray> »<reset> {message}"
 
-# Enable the [item] placeholder (shows the held item, with a hover tooltip on Paper).
+# Show-item: [i] / [item] in chat → inline item sprite + hover tooltip (Paper 1.21.5+).
 use-item-placeholder: true
+item-show:
+  enabled: true
+  # Use Minecraft native item sprites (<font:minecraft:item><sprite:material>). Falls back
+  # to text brackets when unavailable (Spigot or older Paper).
+  sprite: true
+  color: "<aqua>"
+  bracket-color: "<gray>"
 
 # Allow players with 'lpc.chatcolor' to use <gradient> and <rainbow> tags in their messages.
 allow-gradient-tags: true
@@ -48,10 +55,10 @@ disabled-worlds: []
 update-checker: true
 
 # Message shown after running '/lpc reload'.
-reload-message: "<green>Reloaded LPC Chat Suite configuration!"
+reload-message: "<green>Configurazione LPC ricaricata!"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Advanced player hover — hover tooltip + click-to-message on player names.
+#  Advanced player hover — tooltip + click-to-message on player names.
 # ─────────────────────────────────────────────────────────────────────────
 player-hover:
   enabled: true
@@ -71,17 +78,15 @@ mentions:
   require-at-symbol: false
   highlight-format: "<gold>@<name></gold>"
   max-mentions-per-message: 5
-  actionbar-text: "<gold>✦ <white>You were mentioned by <yellow><sender></yellow>"
+  actionbar-text: "<gold>✦ <white>Sei stato menzionato da <yellow><sender></yellow>"
   ping-sound: "entity.experience_orb.pickup"
   ping-volume: 1.0
   ping-pitch: 1.0
 
-  # @staff — alerts players with the configured permission.
   staff:
     enabled: true
     permission: "lpc.staffchat"
 
-  # @everyone — protected by permission, per-player cooldown, and max count per message.
   everyone:
     enabled: true
     permission: "lpc.mention.everyone"
@@ -90,7 +95,8 @@ mentions:
     max-per-message: 1
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Notifications — sound + actionbar (and optionally title) on events.
+#  Notifications — sound/actionbar/title/bossbar per event.
+#  Each notification supports any combination of: sound, chat, actionbar, title, bossbar.
 # ─────────────────────────────────────────────────────────────────────────
 notifications:
   enabled: true
@@ -98,12 +104,12 @@ notifications:
     sound: "entity.experience_orb.pickup"
     volume: 1.0
     pitch: 1.0
-    actionbar: "<gold>✉ <white>New message from <yellow>{sender}</yellow>"
+    actionbar: "<gold>✉ <white>Nuovo messaggio da <yellow>{sender}</yellow>"
   mention:
     sound: "entity.experience_orb.pickup"
     volume: 1.0
     pitch: 1.2
-    actionbar: "<gold>✦ <white>You were mentioned by <yellow>{sender}</yellow>"
+    actionbar: "<gold>✦ <white>Sei stato menzionato da <yellow>{sender}</yellow>"
   everyone:
     sound: "entity.player.levelup"
     volume: 1.0
@@ -114,9 +120,37 @@ notifications:
     volume: 1.0
     pitch: 0.8
     actionbar: "<gradient:#FED83D:#BE2086>✦ @staff</gradient>"
+  staff-chat:
+    sound: "entity.experience_orb.pickup"
+    volume: 0.8
+    pitch: 0.6
+    actionbar: "<gradient:#FED83D:#BE2086>✦ Staff chat</gradient>"
+
+  # System alerts (slowmode, mute cooldown, errors). Bossbar = barra in alto.
+  system.alert:
+    chat: "<red>{text}</red>"
+    actionbar: "<red>{text}</red>"
+    bossbar:
+      enabled: true
+      text: "<red>{text}</red>"
+      color: "red"
+      overlay: "progress"
+      seconds: 2
+
+  slowmode:
+    sound: ""
+    chat: ""
+    actionbar: "<red>Scrivi più lentamente <yellow>({seconds}s)</yellow>"
+    bossbar:
+      enabled: true
+      text: "<red>⏳ Attendi <yellow>{seconds}s</yellow> prima di scrivere"
+      color: "red"
+      overlay: "progress"
+      progress: 1.0
+      seconds: 2
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Emoji / shortcut replacement — replace text shortcuts with glyphs.
+#  Emoji / shortcut replacement.
 # ─────────────────────────────────────────────────────────────────────────
 emoji:
   enabled: true
@@ -130,8 +164,7 @@ emoji:
     ":note:": "♪"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Glyphs (Nexo integration) — :alias: → <glyph:name>. Falls back to literal
-#  replacements when Nexo is not installed.
+#  Glyphs (Nexo integration) — :alias: → <glyph:name>.
 # ─────────────────────────────────────────────────────────────────────────
 glyphs:
   enabled: true
@@ -155,7 +188,7 @@ glyphs:
 link-urls:
   enabled: true
   style: "<blue><underlined>"
-  hover-text: "<gray>Open link"
+  hover-text: "<gray>Apri link"
   allowed-schemes:
     - http
     - https
@@ -183,16 +216,34 @@ group-name-gradients:
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Join / Quit / Death messages.
+#  - `per-group`: attiva formati e sound personalizzati per gruppo/track.
+#  - `sound`: suono riprodotto al player che entra.
+#  - `groups.<group>.format` sovrascrive il formato per quel gruppo.
+#  - `tracks.<track>.format` formato per tutti i gruppi nel track.
 # ─────────────────────────────────────────────────────────────────────────
 join-messages:
   enabled: false
+  per-group: false
   format: "<dark_gray>[<green>+</green>] {prefix}{name}"
+  sound: "entity.player.levelup"
+  sound-volume: 0.6
+  sound-pitch: 1.2
   first-join:
     enabled: false
     format: "<gradient:#B754F4:#FC00FF>Welcome {name} to the server!</gradient>"
+    sound: "ui.toast.challenge_complete"
+    sound-volume: 1.0
+    sound-pitch: 1.0
+  groups: {}
+    # admin:
+    #   format: "<dark_gray>[<red>+</red>] <red>{prefix}{name}"
+    #   sound: "entity.player.levelup"
+  tracks: {}
 quit-messages:
   enabled: false
   format: "<dark_gray>[<red>-</red>] {prefix}{name}"
+  groups: {}
+  tracks: {}
 death-messages:
   enabled: false
   format: "<gray>☠ <death-message>"
@@ -207,26 +258,26 @@ moderation:
 anti-spam:
   enabled: true
   cooldown-millis: 1500
-  message: "<red>Please wait <yellow><seconds>s</yellow> before chatting again."
+  message: "<red>Attendi <yellow>{seconds}s</yellow> prima di scrivere."
 
 repeat-filter:
   enabled: true
   expiry-millis: 30000
-  message: "<red>Please don't repeat the same message."
+  message: "<red>Non ripetere lo stesso messaggio."
 
 caps-filter:
   enabled: true
   min-length: 8
   max-uppercase-ratio: 0.7
   action: LOWERCASE
-  message: "<red>Please don't shout."
+  message: "<red>Non scrivere in maiuscolo."
 
 profanity-filter:
   enabled: false
   action: MASK
   words: []
   mask-char: "*"
-  message: "<red>Watch your language."
+  message: "<red>Language."
 
 anti-advert:
   enabled: false
@@ -234,7 +285,7 @@ anti-advert:
   detect-ip: true
   allowlist: []
   mask: "[link removed]"
-  message: "<red>Advertising is not allowed."
+  message: "<red>Non pubblicizzare link."
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Mute.
@@ -243,20 +294,30 @@ mute:
   enabled: false
   enable-commands: true
   permission-node: "lpc.muted"
-  message: "<red>You are currently muted."
+  message: "<red>Sei mutato."
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Private messages (/msg, /w, /tell, /r).
 # ─────────────────────────────────────────────────────────────────────────
 private-messages:
   enabled: true
-  format-sender: "<gray>[<gold>You</gold> <gold>→</gold> <white>{receiver}</white>]</gray> <white>{message}"
-  format-receiver: "<gray>[<white>{sender}</white> <gold>→</gold> <gold>You</gold>]</gray> <white>{message}"
-  no-reply: "<red>No player to reply to."
-  player-not-found: "<red>Player not found."
-  player-offline: "<red>{name} is not online."
-  ignored: "<red>You cannot message that player."
-  disabled: "<red>That player has private messages disabled."
+  format-sender: "<gray>[<gold>Tu</gold> <gold>→</gold> <white>{receiver}</white>]</gray> <white>{message}"
+  format-receiver: "<gray>[<white>{sender}</white> <gold>→</gold> <gold>Tu</gold>]</gray> <white>{message}"
+  no-reply: "<red>Nessuno a cui rispondere."
+  player-not-found: "<red>Giocatore non trovato."
+  player-offline: "<red>{name} non è online."
+  ignored: "<red>Non puoi messaggiare quel giocatore."
+  disabled: "<red>Quel giocatore ha i messaggi privati disattivati."
+
+# ─────────────────────────────────────────────────────────────────────────
+#  PM Inbox — salva PM non letti, remind periodico e a join/ritorno AFK.
+# ─────────────────────────────────────────────────────────────────────────
+pm-inbox:
+  enabled: true
+  remind-delay-seconds: 30       # Dopo quanto avvisare se non c'è risposta
+  remind-interval-seconds: 60    # Intervallo tra un remind e l'altro
+  remind-on-afk-return: true
+  max-per-player: 50
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Ignore system.
@@ -271,26 +332,25 @@ ignore:
     notifications: true
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Social spy (/socialspy) — view other players' private messages.
+#  Social spy (/socialspy).
 # ─────────────────────────────────────────────────────────────────────────
 social-spy:
   enabled: true
   format: "<dark_gray>[SocialSpy]</dark_gray> <gray>{sender} <dark_gray>→</dark_gray> {receiver}: <white>{message}</white>"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Staff chat (/staffchat, /sc).
+#  Staff chat (/sc).
 # ─────────────────────────────────────────────────────────────────────────
 staff-chat:
   enabled: true
   format: "<gradient:#FED83D:#BE2086>STAFF</gradient> <gray>{name} <dark_gray>»</dark_gray> <white>{message}</white>"
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Slow mode — global chat cooldown.
+#  Slow mode.
 # ─────────────────────────────────────────────────────────────────────────
 slow-mode:
   enabled: true
   default-seconds: 0
-  wait-message: "<red>Please wait <yellow>{seconds}s</yellow> before chatting again."
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Clear chat (/clearchat, /cc).
@@ -298,19 +358,16 @@ slow-mode:
 clear-chat:
   enabled: true
   lines: 100
-  message: "<gray>Chat was cleared by a staff member."
+  message: "<gray>La chat è stata pulita da uno staffer."
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Statistics (SQLite, async, non-blocking).
+#  Statistics (SQLite async).
 # ─────────────────────────────────────────────────────────────────────────
 statistics:
   enabled: true
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Discord integration — disabled by default. Requires a companion bot
-#  plugin registering a DiscordService implementation; LPC itself does not
-#  bundle a Discord client. Token can be provided via ${LPC_DISCORD_TOKEN}
-#  environment variable or a companion plugin's own config.
+#  Discord integration.
 # ─────────────────────────────────────────────────────────────────────────
 discord:
   enabled: false
@@ -324,5 +381,4 @@ discord:
   minecraft-to-discord: true
   discord-to-minecraft: true
 
-# Internal config version. Do not edit.
-config-version: 5
+config-version: 6

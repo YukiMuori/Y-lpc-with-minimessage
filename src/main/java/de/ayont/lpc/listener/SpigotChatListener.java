@@ -49,10 +49,8 @@ public class SpigotChatListener implements Listener {
             return;
         }
 
-        Component slowErr = plugin.getSlowModeService().check(player);
-        if (slowErr != null) {
+        if (plugin.getSlowModeService().checkAndBlock(player)) {
             event.setCancelled(true);
-            plugin.send(player, slowErr);
             return;
         }
 
@@ -114,7 +112,12 @@ public class SpigotChatListener implements Listener {
                 ? plugin.getPlayerHoverService().apply(player, displayName) : displayName;
 
         Component rendered = service.render(player, mention.message(), hoverName);
-        rendered = ItemPlaceholder.apply(plugin, player, rendered, false);
+        // Hover/sprite features require Paper; fall back to legacy [item] on Spigot.
+        if (plugin.isPaper()) {
+            rendered = plugin.getItemShowService().apply(player, rendered, true);
+        } else {
+            rendered = ItemPlaceholder.apply(plugin, player, rendered, false);
+        }
 
         plugin.getStatisticsService().incrementMessage(player);
 

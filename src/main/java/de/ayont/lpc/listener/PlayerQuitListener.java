@@ -5,7 +5,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-public final class PlayerQuitListener implements Listener {
+/** Clears per-player transient state when a player disconnects. */
+public class PlayerQuitListener implements Listener {
 
     private final LPC plugin;
 
@@ -16,5 +17,7 @@ public final class PlayerQuitListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         plugin.getPlayerSettingsService().onQuit(event.getPlayer().getUniqueId());
+        plugin.getBossBarService().clear(event.getPlayer());
+        plugin.getInboxService().onQuit(event.getPlayer().getUniqueId());
     }
 }

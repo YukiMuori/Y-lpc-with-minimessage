@@ -2,7 +2,6 @@ package de.ayont.lpc.listener;
 
 import de.ayont.lpc.LPC;
 import de.ayont.lpc.chat.ChatFormatService;
-import de.ayont.lpc.chat.ItemPlaceholder;
 import de.ayont.lpc.chat.MentionService;
 import de.ayont.lpc.discord.DiscordService;
 import de.ayont.lpc.events.LPCChatMessageEvent;
@@ -54,11 +53,9 @@ public class AsyncChatListener implements Listener {
 
         String raw = PlainTextComponentSerializer.plainText().serialize(event.message());
 
-        // Slow mode
-        Component slowErr = plugin.getSlowModeService().check(player);
-        if (slowErr != null) {
+        // Slow mode (sends its own notification via bossbar/actionbar/chat as configured)
+        if (plugin.getSlowModeService().checkAndBlock(player)) {
             event.setCancelled(true);
-            plugin.send(player, slowErr);
             return;
         }
 
@@ -152,7 +149,7 @@ public class AsyncChatListener implements Listener {
                 }
             }
             Component line = service.render(source, finalMessage, hoverName);
-            line = ItemPlaceholder.apply(plugin, source, line, true);
+            line = plugin.getItemShowService().apply(source, line, true);
             return line;
         });
     }

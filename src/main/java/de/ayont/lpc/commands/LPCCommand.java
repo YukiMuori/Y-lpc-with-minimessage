@@ -21,7 +21,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = List.of(
             "reload", "version", "help", "mute", "unmute",
             "slowmode", "clearchat", "cc",
-            "notifications", "stats");
+            "notifications", "stats", "inbox", "announcements");
     private static final List<String> TARGET_SUBCOMMANDS = List.of("mute", "unmute");
     private static final List<String> SLOWMODE_ARGS = List.of("off");
     private static final MiniMessage MM = MiniMessage.miniMessage();
@@ -52,6 +52,8 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             }
             case "notifications" -> handleNotifications(sender, args);
             case "stats" -> handleStats(sender, args);
+            case "inbox" -> handleInbox(sender);
+            case "announcements" -> handleAnnouncements(sender, args);
             case "help" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
@@ -187,6 +189,38 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
                 "type", type));
     }
 
+    private void handleInbox(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can check their inbox.");
+            return;
+        }
+        var msgs = plugin.getInboxService().drain(player);
+        if (msgs.isEmpty()) {
+            plugin.send(player, mini("<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Non hai messaggi non letti."));
+            return;
+        }
+        plugin.send(player, mini("<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Messaggi non letti <gray>(" + msgs.size() + "):"));
+        for (var m : msgs) {
+            long ago = (System.currentTimeMillis() - m.receivedAtEpochMs()) / 1000L;
+            String agoStr = ago < 60 ? ago + "s fa" : (ago < 3600 ? (ago/60) + "m fa" : (ago/3600) + "h fa");
+            plugin.send(player, mini("<dark_gray>- <white><from></white> <gray>(<ago>): <white><msg>",
+                    "from", m.from(), "ago", agoStr, "msg", m.preview()));
+        }
+    }
+
+    private void handleAnnouncements(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("lpc.announcements")) {
+            plugin.send(sender, mini("<red>Non hai il permesso."));
+            return;
+        }
+        if (args.length < 2 || !args[1].equalsIgnoreCase("reload")) {
+            plugin.send(sender, mini("<red>Uso: <white>/lpc announcements reload"));
+            return;
+        }
+        plugin.getAnnouncementService().reload();
+        plugin.send(sender, mini("<green>Annunci ricaricati da announcements.yml."));
+    }
+
     private void handleStats(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Only players can view statistics.");
@@ -238,6 +272,12 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
     private static Component mini(String raw) { return MM.deserialize(raw); }
     private static Component mini(String raw, String key, String value) {
         return MM.deserialize(raw, Placeholder.unparsed(key, value));
+    }
+    private static Component mini(String raw, String k1, String v1, String k2, String v2, String k3, String v3) {
+        return MM.deserialize(raw,
+                Placeholder.unparsed(k1, v1),
+                Placeholder.unparsed(k2, v2),
+                Placeholder.unparsed(k3, v3));
     }
 
     @Override

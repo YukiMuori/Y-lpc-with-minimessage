@@ -1,0 +1,60 @@
+# ┌─────────────────────────────────────────────────────────────────────┐
+# │  LPC Chat Suite — Auto Announcements                                │
+# │  Ispirato a InfiniteAnnouncements. File separato da config.yml.     │
+# │                                                                     │
+# │  Channel supportati:                                                │
+# │   - chat      (messaggio in chat, con prefix opzionale)             │
+# │   - actionbar (barra dell'azione)                                   │
+# │   - bossbar   (barra boss in alto — Paper only)                     │
+# │   - title     (titolo a tutto schermo — Paper only)                 │
+# │                                                                     │
+# │  Placeholders (MiniMessage): nessun placeholder giocatore; usa i    │
+# │  colori e tag standard di MiniMessage.                              │
+# └─────────────────────────────────────────────────────────────────────┘
+
+enabled: true
+
+# Intervallo di default tra un annuncio e l'altro (secondi).
+interval-seconds: 180
+
+# Se true, gli annunci sono inviati in ordine casuale (altrimenti ciclici).
+random: false
+
+announcements:
+
+  welcome:
+    channel: chat
+    prefix: "<dark_gray>[<gold>Annuncio</gold>]</dark_gray> "
+    lines:
+      - "<yellow>Benvenuto nel server! Ricorda di leggere le regole in <white>/spawn</white>."
+    sound: ""
+
+  discord:
+    channel: actionbar
+    lines:
+      - "<gradient:#5865F2:#EB459E>Entra nel nostro Discord: discord.example.com</gradient>"
+    interval-seconds: 240
+
+  vote:
+    channel: bossbar
+    lines:
+      - "<green>Vota il server per ricevere ricompense!</green>"
+    bossbar:
+      color: green
+      overlay: progress
+      seconds: 5
+    sound: "entity.experience_orb.pickup"
+    sound-volume: 0.5
+    sound-pitch: 1.2
+    permission: ""   # Lascia vuoto per tutti
+    worlds: []       # Vuoto = tutti i mondi
+
+  website:
+    channel: title
+    lines:
+      - "<gold>Sito web"
+    subtitle: "<gray>www.example.com"
+    title-fade-in: 10
+    title-stay: 60
+    title-fade-out: 10
+    interval-seconds: 300
