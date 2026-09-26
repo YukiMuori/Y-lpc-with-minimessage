@@ -120,7 +120,7 @@ public final class PrivateMessageService {
         }
 
         // Fire cancellable event
-        LPCPrivateMessageEvent event = new LPCPrivateMessageEvent(true, sender, target, rawMessage);
+        LPCPrivateMessageEvent event = new LPCPrivateMessageEvent(false, sender, target, rawMessage);
         plugin.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) {
             if (event.getCancelReason() != null) plugin.send(sender, mini(event.getCancelReason()));

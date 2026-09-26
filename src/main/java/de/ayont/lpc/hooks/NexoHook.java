@@ -96,13 +96,17 @@ public final class NexoHook {
         for (var e : all.entrySet()) {
             String literalAlias = e.getKey();
             String glyphName = e.getValue();
-            String tag = "<glyph:" + escapeGlyphName(glyphName) + ">";
-            // Parse only with the restricted glyph-aware parser to prevent injection via glyph names.
+            String safeName = escapeGlyphName(glyphName);
+            if (safeName.isEmpty()) continue;
+            String tag = "<glyph:" + safeName + ">";
+            // Use the global MiniMessage instance so Nexo's registered GlyphTagResolver
+            // is picked up. Glyph names are sanitized server-side (alphanumeric + _ + -),
+            // so a player cannot inject arbitrary tags through this path.
             Component glyphComponent;
             try {
-                glyphComponent = glyphParser.deserialize(tag);
+                glyphComponent = MiniMessage.miniMessage().deserialize(tag);
             } catch (Exception ex) {
-                // Invalid glyph spec: leave the alias literal
+                // Glyph not registered / Nexo error: leave alias literal
                 continue;
             }
             out = out.replaceText(b -> b.matchLiteral(literalAlias).replacement(glyphComponent));

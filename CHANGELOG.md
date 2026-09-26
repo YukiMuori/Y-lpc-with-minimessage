@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.0.1 — Hotfix
+
+- Fixed `IllegalStateException: ... may only be triggered asynchronously` on
+  `/msg`, `/w`, `/tell`, `/r`, and `/sc` (Paper 26.2 enforces async-flag
+  correctness). Events now carry the correct async flag based on the calling
+  thread.
+- Fixed Nexo `<glyph:...>` tags rendering as literal text in chat: glyph tags
+  now resolve through the MiniMessage instance that has Nexo's glyph resolver
+  registered. Glyph names are still sanitized to alphanumerics/`_`/`-` so
+  injection from configured aliases is impossible.
+
 ## 5.0.0 — LPC Chat Suite V2
 
 **Minecraft:** 1.21.x – 26.2 · **Java:** 21+ · **API version:** 1.21 (universal jar)

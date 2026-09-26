@@ -62,6 +62,8 @@ public final class MentionExtensionService {
         Component out = message;
         VanishService vanish = plugin.getVanishService();
         IgnoreService ignore = plugin.getIgnoreService();
+        // May be called from AsyncChatEvent (async) or Spigot sync listener.
+        boolean async = !plugin.getServer().isPrimaryThread();
 
         Set<Player> everyoneRecipients = new HashSet<>();
         Set<Player> staffRecipients = new HashSet<>();
@@ -107,7 +109,7 @@ public final class MentionExtensionService {
                 replaced[0]++;
                 if (replaced[0] == 1) {
                     for (Player p : everyoneRecipients) {
-                        LPCMentionEvent event = new LPCMentionEvent(true, sender, p, LPCMentionEvent.Type.EVERYONE);
+                        LPCMentionEvent event = new LPCMentionEvent(async, sender, p, LPCMentionEvent.Type.EVERYONE);
                         plugin.getServer().getPluginManager().callEvent(event);
                         if (!event.isCancelled()) {
                             plugin.getNotificationService().notify(p, "everyone", Map.of("sender", sender.getName()));
@@ -126,7 +128,7 @@ public final class MentionExtensionService {
                 if (!notified[0]) {
                     notified[0] = true;
                     for (Player p : staffRecipients) {
-                        LPCMentionEvent event = new LPCMentionEvent(true, sender, p, LPCMentionEvent.Type.STAFF);
+                        LPCMentionEvent event = new LPCMentionEvent(async, sender, p, LPCMentionEvent.Type.STAFF);
                         plugin.getServer().getPluginManager().callEvent(event);
                         if (!event.isCancelled()) {
                             plugin.getNotificationService().notify(p, "staff", Map.of("sender", sender.getName()));

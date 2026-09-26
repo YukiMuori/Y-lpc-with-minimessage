@@ -48,7 +48,9 @@ public final class StaffChatService {
             return;
         }
 
-        LPCStaffChatEvent event = new LPCStaffChatEvent(true, sender, rawMessage);
+        // Caller may be main thread (/sc command) or async thread (AsyncChatEvent).
+        boolean isAsync = !plugin.getServer().isPrimaryThread();
+        LPCStaffChatEvent event = new LPCStaffChatEvent(isAsync, sender, rawMessage);
         plugin.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) return;
 
