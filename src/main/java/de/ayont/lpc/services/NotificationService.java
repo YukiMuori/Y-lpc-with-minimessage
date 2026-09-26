@@ -177,13 +177,21 @@ public final class NotificationService {
     }
 
     private Component resolve(String template, Map<String, String> placeholders) {
+        if (template == null || template.isEmpty()) return Component.empty();
         if (placeholders == null || placeholders.isEmpty()) {
             return miniMessage.deserialize(template);
+        }
+        // Accept both {key} (config-friendly, same style as chat format) and MiniMessage's
+        // built-in <key> syntax. Convert {key} → <key> so the same placeholder maps work
+        // for chat, actionbar, bossbar and title templates.
+        String mmTemplate = template;
+        for (var e : placeholders.entrySet()) {
+            mmTemplate = mmTemplate.replace("{" + e.getKey() + "}", "<" + e.getKey() + ">");
         }
         TagResolver[] resolvers = placeholders.entrySet().stream()
                 .map(e -> Placeholder.unparsed(e.getKey(), e.getValue() == null ? "" : e.getValue()))
                 .toArray(TagResolver[]::new);
-        return miniMessage.deserialize(template, resolvers);
+        return miniMessage.deserialize(mmTemplate, resolvers);
     }
 
     public Set<String> getAvailableTypes() { return profiles.keySet(); }

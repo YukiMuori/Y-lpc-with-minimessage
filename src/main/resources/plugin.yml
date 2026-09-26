@@ -11,15 +11,15 @@ website: https://modrinth.com/plugin/lpc-chat
 commands:
   lpc:
     description: LPC Chat Suite main command.
-    usage: "Usage: /lpc <reload|version|help|mute|unmute|slowmode|clearchat|notifications|stats>"
+    usage: "Usage: /lpc <reload|version|help|mute|unmute|slowmode|clearchat|notifications|stats|inbox|announcements>"
   msg:
     description: Send a private message to a player.
     usage: "/msg <player> <message>"
-    aliases: [w, tell]
+    aliases: [w, tell, whisper, m, message]
   reply:
     description: Reply to the last private message.
     usage: "/reply <message>"
-    aliases: [r]
+    aliases: [r, rispondi]
   ignore:
     description: Ignore a player or list ignored players.
     usage: "/ignore [player]"
@@ -34,6 +34,15 @@ commands:
   socialspy:
     description: Toggle SocialSpy for private messages.
     usage: "/socialspy"
+    aliases: [spy]
+  inbox:
+    description: View your unread private messages.
+    usage: "/inbox"
+    aliases: [messaggi, mail]
+  announce:
+    description: Send a manual announcement to chat/actionbar/bossbar/title.
+    usage: "/announce <chat|actionbar|bossbar|title> <message>"
+    aliases: [annuncio, broadcast, lpcannounce]
 permissions:
   lpc.reload:
     description: Allows reloading the LPC configuration.
@@ -163,5 +172,10 @@ permissions:
     description: View your PM inbox.
     default: true
   lpc.announcements:
-    description: Reload announcements.yml.
+    description: Reload announcements.yml and manage announcements.
     default: op
+  lpc.announcements.send:
+    description: Send a manual announcement via /announce.
+    default: op
+    children:
+      lpc.announcements: true

@@ -200,6 +200,9 @@ public final class AnnouncementService {
         }
     }
 
+    public int count() { return announcements.size(); }
+    public boolean isEnabled() { return enabled; }
+
     @SuppressWarnings("checkstyle:RecordComponentNumber")
     public record Announcement(
             List<String> lines, String channel, String permission, Set<String> worlds,

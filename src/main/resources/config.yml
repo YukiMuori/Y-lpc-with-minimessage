@@ -127,6 +127,7 @@ notifications:
     actionbar: "<gradient:#FED83D:#BE2086>✦ Staff chat</gradient>"
 
   # System alerts (slowmode, mute cooldown, errors). Bossbar = barra in alto.
+  # Placeholder {text} = testo dell'errore.
   system.alert:
     chat: "<red>{text}</red>"
     actionbar: "<red>{text}</red>"
@@ -137,6 +138,7 @@ notifications:
       overlay: "progress"
       seconds: 2
 
+  # Placeholder {seconds} = secondi da attendere.
   slowmode:
     sound: ""
     chat: ""
@@ -311,13 +313,21 @@ private-messages:
 
 # ─────────────────────────────────────────────────────────────────────────
 #  PM Inbox — salva PM non letti, remind periodico e a join/ritorno AFK.
+#  Tutti i messaggi sono personalizzabili con MiniMessage.
+#  Placeholders: <count> (numero messaggi), <plurale_i_o> ("o" per 1, "i" per N).
+#  commandi: /inbox, /messaggi, /mail, /lpc inbox.
 # ─────────────────────────────────────────────────────────────────────────
 pm-inbox:
   enabled: true
-  remind-delay-seconds: 30       # Dopo quanto avvisare se non c'è risposta
-  remind-interval-seconds: 60    # Intervallo tra un remind e l'altro
+  remind-delay-seconds: 30
+  remind-interval-seconds: 60
   remind-on-afk-return: true
   max-per-player: 50
+  join-reminder: "<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Hai <white><count></white> PM non lett<plurale_i_o>. Usa <white>/inbox</white>."
+  remind-message: "<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Hai <white><count></white> PM non lett<plurale_i_o>. <white>/inbox</white>"
+  empty-message: "<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Non hai messaggi non letti."
+  header: "<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Messaggi non letti <gray>(<count>):"
+  line-format: "<dark_gray>- <white><from></white> <gray>(<ago>): <white><msg>"
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Ignore system.
@@ -380,5 +390,15 @@ discord:
     staff: ""
   minecraft-to-discord: true
   discord-to-minecraft: true
+
+# ─────────────────────────────────────────────────────────────────────────
+#  Annunci manuali (/announce, /annuncio, /broadcast).
+# ─────────────────────────────────────────────────────────────────────────
+announcements:
+  manual-prefix: "<dark_gray>[<gold>Annuncio</gold>]</dark_gray> "
+  manual-bossbar:
+    color: "yellow"
+    overlay: "progress"
+    seconds: 5
 
 config-version: 6

@@ -8,7 +8,9 @@ import de.ayont.lpc.chat.MentionService;
 import de.ayont.lpc.chat.UrlLinkifier;
 import de.ayont.lpc.commands.LPCCommand;
 import de.ayont.lpc.commands.MessageCommands;
+import de.ayont.lpc.commands.AnnounceCommand;
 import de.ayont.lpc.commands.IgnoreCommand;
+import de.ayont.lpc.commands.InboxCommand;
 import de.ayont.lpc.commands.QuickChatCommands;
 import de.ayont.lpc.database.DatabaseService;
 import de.ayont.lpc.discord.ConfiguredDiscordService;
@@ -289,6 +291,14 @@ public final class LPC extends JavaPlugin {
         MessageCommands.register(this);
         IgnoreCommand.register(this);
         QuickChatCommands.register(this);
+        AnnounceCommand.register(this);
+
+        // Alias /messaggi → /lpc inbox
+        PluginCommand inbox = getCommand("inbox");
+        if (inbox != null) {
+            inbox.setExecutor(new InboxCommand(this));
+            inbox.setTabCompleter(new InboxCommand(this));
+        }
     }
 
     private void registerListeners() {

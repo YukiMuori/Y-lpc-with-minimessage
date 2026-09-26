@@ -1,6 +1,7 @@
 package de.ayont.lpc.commands;
 
 import de.ayont.lpc.LPC;
+import de.ayont.lpc.commands.AnnounceCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -21,9 +22,10 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = List.of(
             "reload", "version", "help", "mute", "unmute",
             "slowmode", "clearchat", "cc",
-            "notifications", "stats", "inbox", "announcements");
+            "notifications", "stats", "inbox", "announce", "announcements");
     private static final List<String> TARGET_SUBCOMMANDS = List.of("mute", "unmute");
     private static final List<String> SLOWMODE_ARGS = List.of("off");
+    private static final List<String> ANNOUNCE_SUBS = List.of("reload", "list", "send", "help");
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
     private final LPC plugin;
@@ -54,6 +56,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             case "stats" -> handleStats(sender, args);
             case "inbox" -> handleInbox(sender);
             case "announcements" -> handleAnnouncements(sender, args);
+            case "announce" -> handleAnnounceShortcut(sender, args);
             case "help" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
@@ -194,18 +197,30 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("Only players can check their inbox.");
             return;
         }
-        var msgs = plugin.getInboxService().drain(player);
+        var inbox = plugin.getInboxService();
+        var msgs = inbox.drain(player);
         if (msgs.isEmpty()) {
-            plugin.send(player, mini("<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Non hai messaggi non letti."));
+            plugin.send(player, MM.deserialize(inbox.getEmptyMessage()));
             return;
         }
-        plugin.send(player, mini("<dark_gray>[<gradient:#B754F4:#FC00FF>LPC</gradient>] <yellow>Messaggi non letti <gray>(" + msgs.size() + "):"));
+        String header = inbox.getHeader().replace("<count>", Integer.toString(msgs.size()))
+                .replace("{count}", Integer.toString(msgs.size()));
+        plugin.send(player, MM.deserialize(header));
         for (var m : msgs) {
             long ago = (System.currentTimeMillis() - m.receivedAtEpochMs()) / 1000L;
             String agoStr = ago < 60 ? ago + "s fa" : (ago < 3600 ? (ago/60) + "m fa" : (ago/3600) + "h fa");
-            plugin.send(player, mini("<dark_gray>- <white><from></white> <gray>(<ago>): <white><msg>",
-                    "from", m.from(), "ago", agoStr, "msg", m.preview()));
+            String line = inbox.getLineFormat()
+                    .replace("<from>", m.from()).replace("{from}", m.from())
+                    .replace("<ago>", agoStr).replace("{ago}", agoStr)
+                    .replace("<msg>", escapeMini(m.preview()))
+                    .replace("{msg}", escapeMini(m.preview()));
+            plugin.send(player, MM.deserialize(line));
         }
+    }
+
+    private static String escapeMini(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "\\<");
     }
 
     private void handleAnnouncements(CommandSender sender, String[] args) {
@@ -213,12 +228,33 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             plugin.send(sender, mini("<red>Non hai il permesso."));
             return;
         }
-        if (args.length < 2 || !args[1].equalsIgnoreCase("reload")) {
-            plugin.send(sender, mini("<red>Uso: <white>/lpc announcements reload"));
-            return;
+        String sub = args.length >= 2 ? args[1].toLowerCase() : "help";
+        switch (sub) {
+            case "reload" -> {
+                plugin.getAnnouncementService().reload();
+                plugin.send(sender, mini("<green>Annunci ricaricati da announcements.yml."));
+            }
+            case "list" -> {
+                plugin.send(sender, mini("<yellow>Annunci caricati: <white>" + plugin.getAnnouncementService().count() + "</white>."));
+                plugin.send(sender, mini("<gray>Usa <white>/lpc announcements reload</white> per ricaricare,"));
+                plugin.send(sender, mini("<gray>o <white>/announce <chat|actionbar|bossbar|title> <msg></white> per inviare un annuncio manuale."));
+            }
+            default -> {
+                plugin.send(sender, mini("<gradient:#FED83D:#BE2086>Annunci</gradient>"));
+                plugin.send(sender, mini("<dark_gray>- <white>/lpc announcements reload</white> <dark_gray>» <gray>Ricarica announcements.yml"));
+                plugin.send(sender, mini("<dark_gray>- <white>/lpc announcements list</white> <dark_gray>» <gray>Mostra numero annunci"));
+                plugin.send(sender, mini("<dark_gray>- <white>/announce <canale> <msg></white> <dark_gray>» <gray>Invia un annuncio ora"));
+            }
         }
-        plugin.getAnnouncementService().reload();
-        plugin.send(sender, mini("<green>Annunci ricaricati da announcements.yml."));
+    }
+
+    private void handleAnnounceShortcut(CommandSender sender, String[] args) {
+        // Forward to /announce logic
+        var cmd = new AnnounceCommand(plugin);
+        // args[0] is "announce", shift
+        String[] shifted = new String[Math.max(0, args.length - 1)];
+        System.arraycopy(args, 1, shifted, 0, shifted.length);
+        cmd.onCommand(sender, null, "announce", shifted);
     }
 
     private void handleStats(CommandSender sender, String[] args) {
@@ -234,19 +270,22 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        plugin.send(sender, mini("<gradient:#FED83D:#BE2086>LPC Chat Suite</gradient> <gray>commands:"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc reload</white> <dark_gray>» <gray>Reload configuration"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc version</white> <dark_gray>» <gray>Plugin version"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc slowmode <s|off></white> <dark_gray>» <gray>Set chat slow mode"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc clearchat</white> <dark_gray>» <gray>Clear chat"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc notifications [type]</white> <dark_gray>» <gray>Toggle notifications"));
-        plugin.send(sender, mini("<dark_gray>- <white>/lpc stats [player]</white> <dark_gray>» <gray>View stats"));
-        plugin.send(sender, mini("<dark_gray>- <white>/msg, /w, /r, /reply</white> <dark_gray>» <gray>Private messages"));
-        plugin.send(sender, mini("<dark_gray>- <white>/ignore <player></white> <dark_gray>» <gray>Ignore a player"));
-        plugin.send(sender, mini("<dark_gray>- <white>/staffchat (/sc)</white> <dark_gray>» <gray>Staff channel"));
+        plugin.send(sender, mini("<gradient:#FED83D:#BE2086>LPC Chat Suite</gradient> <gray>comandi:"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc reload</white> <dark_gray>» <gray>Ricarica configurazione"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc version</white> <dark_gray>» <gray>Versione plugin"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc slowmode <s|off></white> <dark_gray>» <gray>Imposta slow mode"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc clearchat</white> <dark_gray>» <gray>Pulisci chat"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc notifications [tipo]</white> <dark_gray>» <gray>Attiva/disattiva notifiche"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc stats [player]</white> <dark_gray>» <gray>Vedi statistiche"));
+        plugin.send(sender, mini("<dark_gray>- <white>/inbox</white> <dark_gray>» <gray>Messaggi privati non letti"));
+        plugin.send(sender, mini("<dark_gray>- <white>/msg, /w, /tell, /r</white> <dark_gray>» <gray>Messaggi privati"));
+        plugin.send(sender, mini("<dark_gray>- <white>/ignore <player></white> <dark_gray>» <gray>Ignora un giocatore"));
+        plugin.send(sender, mini("<dark_gray>- <white>/sc [msg]</white> <dark_gray>» <gray>Staff chat"));
         plugin.send(sender, mini("<dark_gray>- <white>/socialspy</white> <dark_gray>» <gray>Toggle social spy"));
+        plugin.send(sender, mini("<dark_gray>- <white>/announce <canale> <msg></white> <dark_gray>» <gray>Invia un annuncio"));
+        plugin.send(sender, mini("<dark_gray>- <white>/lpc announcements</white> <dark_gray>» <gray>Gestisci annunci"));
         if (plugin.getMuteService().areCommandsEnabled()) {
-            plugin.send(sender, mini("<dark_gray>- <white>/lpc mute/unmute</white> <dark_gray>» <gray>Mute a player"));
+            plugin.send(sender, mini("<dark_gray>- <white>/lpc mute/unmute</white> <dark_gray>» <gray>Muta un giocatore"));
         }
     }
 
@@ -304,6 +343,16 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
                 types.add("all");
                 return types.stream().filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
+            if (cmd0.equals("announcements")) {
+                return ANNOUNCE_SUBS.stream().filter(s -> s.startsWith(prefix)).toList();
+            }
+            if (cmd0.equals("announce")) {
+                return List.of("chat","actionbar","bossbar","title").stream()
+                        .filter(s -> s.startsWith(prefix)).toList();
+            }
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("announce")) {
+            return List.of();
         }
         return List.of();
     }

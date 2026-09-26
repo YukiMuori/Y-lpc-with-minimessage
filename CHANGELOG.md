@@ -1,5 +1,20 @@
 # Changelog
 
+## 5.1.1
+
+- **Fix actionbar {sender}** — le notifiche actionbar/title/bossbar/chat ora accettano
+  placeholder in stile `{chiave}` (come i formati chat), oltre a `<chiave>`. PM e mention
+  mostrano correttamente il nome del mittente.
+- **Comando `/announce`** (`/annuncio`, `/broadcast`, `/lpc announce`) per inviare
+  annunci manuali su chat, actionbar, bossbar o title senza modificare
+  `announcements.yml` (permesso `lpc.announcements.send`).
+- **Gestione annunci via `/lpc announcements`** con subcomandi `reload`, `list`, `help`.
+- **Alias comandi**: `/inbox`, `/messaggi`, `/mail`; `/r`, `/rispondi`; `/spy`;
+  `/m`, `/message`, `/whisper` per i PM.
+- **PM inbox personalizzabile** — `pm-inbox.header`, `line-format`, `empty-message`,
+  `join-reminder`, `remind-message` sono ora configurabili; il prefisso LPC è solo
+  un default che puoi sovrascrivere.
+
 ## 5.1.0
 
 - **BossBar per avvisi** — nuove opzioni `bossbar.*` in ogni sezione notification. Slow mode,
