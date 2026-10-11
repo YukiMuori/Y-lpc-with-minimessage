@@ -6,22 +6,10 @@ plugins {
 group = 'de.ayont'
 version = project.findProperty('project_version') ?: '5.0.0'
 
-// ─── Single universal jar ─────────────────────────────────────────────────────
-// LPC compiles ONCE against the lowest supported platform (Paper 1.21 / Adventure 4 / Java 21,
-// api-version 1.21) and that same bytecode runs on Paper 1.21.x AND Paper 26.2:
-//
-//   * api-version 1.21 is accepted by Paper 26.2 (forward-compatibility).
-//   * Java 21 bytecode runs on Java 25.
-//   * The Adventure APIs LPC uses are binary-compatible across Adventure 4 -> 5 (the breaking
-//     changes in Adventure 5 — e.g. ClickEvent.value() removal — are NOT used by LPC). The
-//     `crossCompatTest` task proves this by running the Adventure-4-compiled test classes against
-//     an Adventure 5 runtime, simulating exactly what a Paper 26.2 server does.
-final def PAPER = '1.21.11-R0.1-SNAPSHOT'
-final def ADVENTURE = '4.23.0'
-final def ADVENTURE_NEXT = '5.2.0' // Adventure 5 runtime, used only by crossCompatTest
-final def GSON = '2.10.1'
+// Target: Paper/Leaf 26.2 on Java 25. Adventure comes from the server (paper-api), not shaded.
+final def PAPER = '26.2.build.133-stable'
 final def SQLITE_JDBC = '3.46.0.0'
-final def TARGET_JAVA = 21
+final def TARGET_JAVA = 25
 final def API_VERSION = '1.21'
 
 repositories {
@@ -36,64 +24,23 @@ repositories {
     }
 }
 
-// Adventure 5 runtime for the cross-compat proof task (declared before dependencies below use it).
-configurations {
-    crossCompatTestRuntimeOnly {
-        canBeConsumed = false
-        canBeResolved = true
-    }
-}
-
 dependencies {
     compileOnly "io.papermc.paper:paper-api:${PAPER}"
     compileOnly "net.luckperms:api:$luckpermsapi"
     compileOnly "me.clip:placeholderapi:$papi"
-    compileOnly "com.google.code.gson:gson:${GSON}" // provided by the server at runtime
 
     // SQLite JDBC — shaded so LPC can run on any server without depending on a server-bundled driver.
     implementation "org.xerial:sqlite-jdbc:${SQLITE_JDBC}"
 
-    // Adventure — pinned to what Paper 1.21 bundles; shaded UNRELOCATED so on Paper it resolves
-    // from the server's bundled copy (parent-first), and on Spigot (no Adventure) from this jar.
-    implementation platform("net.kyori:adventure-bom:${ADVENTURE}")
-    implementation "net.kyori:adventure-api"
-    implementation "net.kyori:adventure-text-minimessage"
-    implementation "net.kyori:adventure-text-serializer-legacy"
-    implementation "net.kyori:adventure-text-serializer-plain"
-
     testImplementation "io.papermc.paper:paper-api:${PAPER}"
-    testImplementation platform("net.kyori:adventure-bom:${ADVENTURE}")
-    testImplementation "net.kyori:adventure-text-minimessage"
-    testImplementation "net.kyori:adventure-api"
     testImplementation platform('org.junit:junit-bom:5.14.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // Adventure 5 — only on the cross-compat test runtime, to prove forward compatibility.
-    crossCompatTestRuntimeOnly platform("net.kyori:adventure-bom:${ADVENTURE_NEXT}")
-    crossCompatTestRuntimeOnly "net.kyori:adventure-api"
-    crossCompatTestRuntimeOnly "net.kyori:adventure-text-minimessage"
-    crossCompatTestRuntimeOnly "net.kyori:adventure-text-serializer-legacy"
-    crossCompatTestRuntimeOnly "net.kyori:adventure-text-serializer-plain"
 }
 
 test {
     useJUnitPlatform()
-}
-
-// Cross-compatibility proof: the main + test classes are compiled against Adventure 4, but this
-// task runs the SAME tests with Adventure 5 on the classpath — i.e. exactly what a Paper 26.2
-// server does. Green == the universal jar is safe on both platforms.
-tasks.register('crossCompatTest', Test) {
-    description = 'Runs the Adventure-4-compiled tests against an Adventure 5 runtime (forward-compat proof).'
-    group = 'verification'
-    useJUnitPlatform()
-    testClassesDirs = sourceSets.test.output.classesDirs
-    // Take the normal test runtime classpath, strip the Adventure 4 jars, add Adventure 5.
-    def withoutAdventure = sourceSets.test.runtimeClasspath.filter { file ->
-        !(file.name.toLowerCase().contains('adventure'))
-    }
-    classpath = sourceSets.test.output + withoutAdventure + configurations.crossCompatTestRuntimeOnly
 }
 
 java {
@@ -110,9 +57,9 @@ processResources {
             version       : version,
             apiVersion    : API_VERSION,
             buildTarget   : 'universal',
-            buildMc       : '1.21.x–26.2',
+            buildMc       : '26.2',
             buildJava     : TARGET_JAVA,
-            buildAdventure: ADVENTURE
+            buildAdventure: 'server'
     ]
     inputs.properties props
     filteringCharset 'UTF-8'
@@ -135,8 +82,4 @@ jar {
 
 tasks.named('assemble') {
     dependsOn tasks.named('shadowJar')
-}
-
-tasks.named('check') {
-    dependsOn tasks.named('crossCompatTest')
 }

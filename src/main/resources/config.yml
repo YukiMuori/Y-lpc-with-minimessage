@@ -401,4 +401,125 @@ announcements:
     overlay: "progress"
     seconds: 5
 
+# ─────────────────────────────────────────────────────────────────────────
+#  ChatGames: giochi automatici in chat (solo Paper).
+#  Tipi: math (calcolo veloce), scramble (parola anagrammata), type (scrivi per primo),
+#        number (indovina il numero), trivia, complete (completa la parola).
+#  Comandi: /chatgames [start [tipo]|stop|reload|toggle|top]  (admin: lpc.chatgames.admin)
+#  Placeholder: %lpc_chatgames_wins%
+# ─────────────────────────────────────────────────────────────────────────
+chat-games:
+  enabled: true
+  interval-minutes: 10
+  min-players: 3
+  duration-seconds: 60
+  # Dopo una vittoria il giocatore non può vincere di nuovo per X minuti (anti-farming).
+  win-cooldown-minutes: 15
+  types: [math, scramble, type, number, trivia, complete]
+  sounds:
+    start: "block.note_block.pling"
+    win: "entity.player.levelup"
+  math:
+    max-add: 500
+    max-mul: 15
+  number:
+    max: 100
+  complete:
+    hide-ratio: 0.4
+  # Premi: per ogni voce si tira "chance" (percentuale) in modo indipendente.
+  # "rewards.<tipo>" sostituisce "rewards.default" per quel tipo. {player} = vincitore.
+  rewards:
+    default:
+      - chance: 100
+        commands: ["cmi money give {player} 150"]
+        text: "<#FED83D>150 monete"
+      - chance: 3
+        commands: ["bugheuri give {player} 3 -s"]
+        text: "<#FED83D>3 bugheuri"
+      - chance: 1
+        commands: ["crates giveKey diamante {player} 1 -s"]
+        text: "<gradient:#BE2086:#FED83D>Chiave Diamante</gradient>"
+    type:
+      - chance: 100
+        commands: ["cmi money give {player} 100"]
+        text: "<#FED83D>100 monete"
+      - chance: 2
+        commands: ["bugheuri give {player} 3 -s"]
+        text: "<#FED83D>3 bugheuri"
+    number:
+      - chance: 100
+        commands: ["cmi money give {player} 200"]
+        text: "<#FED83D>200 monete"
+      - chance: 3
+        commands: ["bugheuri give {player} 3 -s"]
+        text: "<#FED83D>3 bugheuri"
+      - chance: 1
+        commands: ["crates giveKey diamante {player} 1 -s"]
+        text: "<gradient:#BE2086:#FED83D>Chiave Diamante</gradient>"
+  # Parole per "scramble" e "complete" (una parola sola, senza spazi).
+  words: [creeper, diamante, smeraldo, piccone, netherite, enderman, lanterna, portale, villaggio, incantesimo,
+    pozione, ossidiana, redstone, scheletro, zombie, forziere, fornace, tridente, elitre, totem,
+    ghast, blaze, shulker, warden, axolotl, ametista, mangrovia, ciliegio, lucciola, sniffer,
+    neverland, peluche, bugheuri, pescatore, scudo, falò, cristallo, conchiglia, girasole, arcobaleno]
+  # Frasi per "type" (scrivi per primo).
+  phrases: ["Benvenuti a Neverland", "Il creeper è dietro di te", "Viva DaveToy95", "Diamanti a mezzanotte",
+    "Pesca miracolosa", "Torta al cioccolato", "Il drago dell'End", "Scava dritto mai", "Neverland per sempre",
+    "Un piccone di netherite", "Lucciole nella notte", "Zuppa di funghi calda"]
+  # Trivia: più risposte accettate; maiuscole e accenti ignorati.
+  trivia:
+    - question: "Quanti blocchi di ossidiana servono come minimo per un portale del Nether?"
+      answers: ["10", "dieci"]
+    - question: "Quale mob esplode quando ti si avvicina?"
+      answers: ["creeper", "il creeper"]
+    - question: "Con quale oggetto si addomestica un lupo?"
+      answers: ["osso", "un osso", "ossa"]
+    - question: "Qual è il minerale più resistente del gioco?"
+      answers: ["netherite"]
+    - question: "Come si chiama il boss finale dell'End?"
+      answers: ["ender dragon", "drago", "drago dell'end", "enderdrago"]
+    - question: "Quale materiale serve per craftare un tavolo da incantamento oltre a diamanti e libro?"
+      answers: ["ossidiana"]
+    - question: "Quale mob lascia cadere le perle dell'Ender?"
+      answers: ["enderman"]
+    - question: "Quante lane servono per fare un letto?"
+      answers: ["3", "tre"]
+    - question: "In quale dimensione si trova la fortezza del Nether?"
+      answers: ["nether", "il nether"]
+    - question: "Quale animale dà il latte oltre alla mucca?"
+      answers: ["capra", "la capra", "mooshroom"]
+    - question: "Che cosa mangia il panda?"
+      answers: ["bambu", "bambù"]
+    - question: "Quale mob vive nell'Antica Città e non vede?"
+      answers: ["warden", "il warden"]
+    - question: "Quale oggetto ti salva dalla morte se lo tieni in mano?"
+      answers: ["totem", "totem dell'immortalità", "totem of undying"]
+    - question: "Chi è lo streamer di Neverland?"
+      answers: ["davetoy95", "dave", "davetoy"]
+  messages:
+    prefix: "<gradient:#BE2086:#FED83D>ChatGames</gradient> <dark_gray>»</dark_gray> "
+    start:
+      math: "<prefix><#CCCCCC>Calcolo veloce! <hover:show_text:'<#9C9C9C>Scrivi il risultato in chat<newline><#9C9C9C>Tempo: <white><seconds>s'><#FED83D>Quanto fa <white><question></white>?</hover>"
+      scramble: "<prefix><#CCCCCC>Riordina le lettere: <hover:show_text:'<#9C9C9C>Inizia con <white><hint><newline><#9C9C9C>Tempo: <white><seconds>s'><#FED83D><question></hover>"
+      type: "<prefix><#CCCCCC>Scrivi per primo: <hover:show_text:'<#9C9C9C>Scrivila in chat, maiuscole e accenti non contano<newline><#9C9C9C>Tempo: <white><seconds>s'><#FED83D><question></hover>"
+      number: "<prefix><#CCCCCC>Indovina il numero tra <#FED83D><question></#FED83D>! <hover:show_text:'<#9C9C9C>Scrivi un numero: ti dirò se è più alto o più basso<newline><#9C9C9C>Tempo: <white><seconds>s'><dark_gray>[?]</dark_gray></hover>"
+      trivia: "<prefix><#CCCCCC>Trivia: <hover:show_text:'<#9C9C9C>Rispondi in chat<newline><#9C9C9C>Tempo: <white><seconds>s'><#FED83D><question></hover>"
+      complete: "<prefix><#CCCCCC>Completa la parola: <hover:show_text:'<#9C9C9C>Scrivi la parola intera<newline><#9C9C9C>Tempo: <white><seconds>s'><#FED83D><question></hover>"
+    win: "<prefix><#7EE2A8><player></#7EE2A8> <#CCCCCC>ha vinto in <#FED83D><time>s</#FED83D>! <dark_gray>→</dark_gray> <hover:show_text:'<#9C9C9C>Vittorie totali: <white><wins>'><white><answer></white></hover> <dark_gray>┃</dark_gray> <rewards>"
+    timeout: "<prefix><#FF5C7A>Tempo scaduto! <#CCCCCC>La risposta era <white><answer></white>."
+    stopped: "<prefix><#FF5C7A>Gioco annullato. <#CCCCCC>La risposta era <white><answer></white>."
+    number-higher: "<prefix><#CCCCCC><white><guess></white> <dark_gray>→</dark_gray> <#7EE2A8>più alto ▲"
+    number-lower: "<prefix><#CCCCCC><white><guess></white> <dark_gray>→</dark_gray> <#FF5C7A>più basso ▼"
+    cooldown: "<prefix><#FF5C7A>Hai vinto da poco: riprova tra <white><minutes></white> min."
+    toggle-on: "<prefix><#7EE2A8>ChatGames attivati."
+    toggle-off: "<prefix><#FF5C7A>ChatGames disattivati. <#9C9C9C>/chatgames toggle per riattivarli."
+    already-running: "<prefix><#FF5C7A>C'è già un gioco in corso."
+    no-game: "<prefix><#FF5C7A>Nessun gioco in corso."
+    unknown-type: "<prefix><#FF5C7A>Tipo sconosciuto. <#9C9C9C>Tipi: <white><types>"
+    reloaded: "<prefix><#7EE2A8>Configurazione ricaricata."
+    no-permission: "<prefix><#FF5C7A>Non hai il permesso."
+    top-header: "<prefix><#CCCCCC>Classifica vittorie"
+    top-line: "<dark_gray>  <pos>.</dark_gray> <white><player></white> <dark_gray>→</dark_gray> <#FED83D><wins>"
+    top-empty: "<prefix><#9C9C9C>Ancora nessuna vittoria."
+    help: "<prefix><#CCCCCC>Le tue vittorie: <#FED83D><wins></#FED83D> <dark_gray>┃</dark_gray> <#9C9C9C><click:run_command:'/chatgames top'><hover:show_text:'<#9C9C9C>Apri la classifica'>/chatgames top</hover></click> <dark_gray>·</dark_gray> <click:run_command:'/chatgames toggle'><hover:show_text:'<#9C9C9C>Attiva/disattiva i giochi'>/chatgames toggle</hover></click>"
+
 config-version: 6

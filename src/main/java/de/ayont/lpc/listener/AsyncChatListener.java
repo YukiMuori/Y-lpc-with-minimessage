@@ -70,6 +70,13 @@ public class AsyncChatListener implements Listener {
         }
         String effectiveRaw = moderation.action() == ModResult.Action.TRANSFORM ? moderation.text() : raw;
 
+        // ChatGames: a correct answer (or a number guess) never reaches public chat.
+        if (plugin.getChatGamesService() != null
+                && plugin.getChatGamesService().handle(player, raw) == de.ayont.lpc.chatgames.ChatGamesService.Result.CONSUMED) {
+            event.setCancelled(true);
+            return;
+        }
+
         // Fire cancellable public event BEFORE decorating.
         LPCChatMessageEvent pubEvent = new LPCChatMessageEvent(true, player, effectiveRaw);
         plugin.getServer().getPluginManager().callEvent(pubEvent);
@@ -139,18 +146,13 @@ public class AsyncChatListener implements Listener {
                     PlainTextComponentSerializer.plainText().serialize(finalMessage));
         }
 
-        event.renderer((source, sourceDisplayName, message, viewer) -> {
-            // If the viewer is a player and has ignored the source, hide the message.
-            if (viewer instanceof Player pViewer) {
-                if (ignore.isEnabled() && ignore.blocksChat()
-                        && ignore.isIgnoring(pViewer, source.getUniqueId())
-                        && !ignore.hasBypass(source)) {
-                    return Component.empty();
-                }
-            }
-            Component line = service.render(source, finalMessage, hoverName);
-            line = plugin.getItemShowService().apply(source, line, true);
-            return line;
-        });
+        // Viewers who ignore the sender don't get the message at all (an empty component would
+        // still print a blank line).
+        if (ignore.isEnabled() && ignore.blocksChat() && !ignore.hasBypass(player)) {
+            event.viewers().removeIf(v -> v instanceof Player pv && ignore.isIgnoring(pv, player.getUniqueId()));
+        }
+        // The line does not depend on the viewer: render it once instead of once per online player.
+        Component line = plugin.getItemShowService().apply(player, service.render(player, finalMessage, hoverName), true);
+        event.renderer((source, sourceDisplayName, message, viewer) -> line);
     }
 }

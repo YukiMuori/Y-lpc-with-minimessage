@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.2.0
+
+- **ChatGames** integrati (sezione `chat-games` in config.yml): calcolo veloce, parola anagrammata,
+  scrivi per primo, indovina il numero, trivia, completa la parola. Premi configurabili, cooldown
+  vittorie anti-farming, statistiche SQLite, `/chatgames`, placeholder `%lpc_chatgames_wins%`.
+- **Fix ignore**: chi ignora un giocatore non riceve più una riga vuota al posto del messaggio.
+- **Performance**: la riga di chat (LuckPerms + PAPI + MiniMessage) è calcolata una volta per messaggio,
+  non una volta per ogni giocatore online.
+- **Fix** `/lpc stats`: niente NPE se il database non risponde.
+- Build: paper-api 26.2.build.133-stable, Java 25; Adventure non più incluso nel jar (lo fornisce Paper).
+
 ## 5.1.1
 
 - **Fix actionbar {sender}** — le notifiche actionbar/title/bossbar/chat ora accettano

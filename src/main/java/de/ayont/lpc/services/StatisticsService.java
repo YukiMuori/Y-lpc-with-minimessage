@@ -156,6 +156,7 @@ public final class StatisticsService {
     }
 
     private void sendPlayerStats(Player viewer, String name, Map<String, Long> s) {
+        if (s == null) s = Map.of(); // DB unavailable/failed query
         Component header = mm.deserialize("<gradient:#FED83D:#BE2086>LPC Stats</gradient> <gray>— <white><name></white>",
                 Placeholder.unparsed("name", name));
         plugin.send(viewer, header);

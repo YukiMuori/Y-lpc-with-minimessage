@@ -6,6 +6,9 @@ import de.ayont.lpc.chat.ItemPlaceholder;
 import de.ayont.lpc.chat.ItemShowService;
 import de.ayont.lpc.chat.MentionService;
 import de.ayont.lpc.chat.UrlLinkifier;
+import de.ayont.lpc.chatgames.ChatGamesCommand;
+import de.ayont.lpc.chatgames.ChatGamesExpansion;
+import de.ayont.lpc.chatgames.ChatGamesService;
 import de.ayont.lpc.commands.LPCCommand;
 import de.ayont.lpc.commands.MessageCommands;
 import de.ayont.lpc.commands.AnnounceCommand;
@@ -93,6 +96,8 @@ public final class LPC extends JavaPlugin {
     private JoinLeaveService joinLeaveService;
     private InboxService inboxService;
     private AnnouncementService announcementService;
+    private ChatGamesService chatGamesService;
+    private ChatGamesExpansion chatGamesExpansion;
 
     private BukkitTask inboxTickTask;
 
@@ -141,6 +146,13 @@ public final class LPC extends JavaPlugin {
         this.configuredDiscordService = new ConfiguredDiscordService(this);
         this.discordService = configuredDiscordService;
         this.announcementService = new AnnouncementService(this);
+        if (paper) {
+            this.chatGamesService = new ChatGamesService(this);
+            if (placeholderApiHook.isAvailable()) {
+                this.chatGamesExpansion = new ChatGamesExpansion(this);
+                chatGamesExpansion.register();
+            }
+        }
 
         registerCommand();
         registerListeners();
@@ -192,6 +204,8 @@ public final class LPC extends JavaPlugin {
     @Override
     public void onDisable() {
         if (announcementService != null) announcementService.shutdown();
+        if (chatGamesService != null) chatGamesService.shutdown();
+        if (chatGamesExpansion != null) chatGamesExpansion.unregister();
         if (discordService != null) discordService.shutdown();
         if (databaseService != null) databaseService.close();
         if (scheduler != null) scheduler.cancelAll();
@@ -226,6 +240,7 @@ public final class LPC extends JavaPlugin {
     public JoinLeaveService getJoinLeaveService() { return joinLeaveService; }
     public InboxService getInboxService() { return inboxService; }
     public AnnouncementService getAnnouncementService() { return announcementService; }
+    public ChatGamesService getChatGamesService() { return chatGamesService; }
 
     public void setDiscordService(DiscordService service) {
         this.discordService = service == null ? DiscordService.disabled() : service;
@@ -256,6 +271,7 @@ public final class LPC extends JavaPlugin {
         playerHoverService.reload();
         if (configuredDiscordService != null) configuredDiscordService.reload();
         if (announcementService != null) announcementService.reload();
+        if (chatGamesService != null) chatGamesService.reload();
     }
 
     public boolean isDisabledWorld(String worldName) {
@@ -292,6 +308,13 @@ public final class LPC extends JavaPlugin {
         IgnoreCommand.register(this);
         QuickChatCommands.register(this);
         AnnounceCommand.register(this);
+
+        PluginCommand games = getCommand("chatgames");
+        if (games != null && chatGamesService != null) {
+            ChatGamesCommand cg = new ChatGamesCommand(this);
+            games.setExecutor(cg);
+            games.setTabCompleter(cg);
+        }
 
         // Alias /messaggi → /lpc inbox
         PluginCommand inbox = getCommand("inbox");

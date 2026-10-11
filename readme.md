@@ -268,3 +268,32 @@ Requires JDK 21+.
 ## 📄 License
 
 Released under the MIT License.
+
+
+## ChatGames (italiano)
+
+Giochi automatici in chat, uno alla volta: ogni `interval-minutes` minuti, se online ci sono almeno
+`min-players` giocatori (che non li hanno disattivati), parte un gioco a caso tra quelli in `types`.
+Vince il primo che scrive la risposta giusta entro `duration-seconds`; il suo messaggio non compare in chat,
+al suo posto c'è l'annuncio con tempo impiegato, risposta e premi.
+
+| Tipo | Gioco |
+|---|---|
+| `math` | Calcolo veloce (+, -, ×) |
+| `scramble` | Parola anagrammata (`words`) |
+| `type` | Scrivi per primo la frase (`phrases`) |
+| `number` | Indovina il numero 1-`number.max`: i tentativi restano privati con l'indizio più alto/più basso |
+| `trivia` | Domande con più risposte accettate (`trivia`) |
+| `complete` | Completa la parola con lettere nascoste (`words`) |
+
+Le risposte ignorano maiuscole, accenti e punteggiatura. I numeri si possono scrivere anche come `1.234`.
+
+**Premi**: `rewards.default` o `rewards.<tipo>`, lista di voci `{chance, commands, text}`; ogni voce
+è tirata in modo indipendente, i comandi partono dalla console con `{player}`. `win-cooldown-minutes`
+impedisce allo stesso giocatore di vincere di continuo (la sua risposta viene nascosta e gli arriva un avviso).
+
+**Comandi**: `/chatgames` (le tue vittorie), `/chatgames top`, `/chatgames toggle`
+(nasconde/mostra i giochi, salvato), e per lo staff (`lpc.chatgames.admin`) `start [tipo]`, `stop`, `reload`.
+Alias `/cg`.
+
+**Placeholder**: `%lpc_chatgames_wins%`. Statistiche nella tabella `chatgames` di `data.db`.

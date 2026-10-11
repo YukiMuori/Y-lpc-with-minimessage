@@ -43,7 +43,14 @@ commands:
     description: Send a manual announcement to chat/actionbar/bossbar/title.
     usage: "/announce <chat|actionbar|bossbar|title> <message>"
     aliases: [annuncio, broadcast, lpcannounce]
+  chatgames:
+    description: Giochi in chat (ChatGames).
+    usage: "/chatgames [start [tipo]|stop|reload|toggle|top]"
+    aliases: [cg, chatgame]
 permissions:
+  lpc.chatgames.admin:
+    description: Avviare/fermare/ricaricare i ChatGames.
+    default: op
   lpc.reload:
     description: Allows reloading the LPC configuration.
     default: op
