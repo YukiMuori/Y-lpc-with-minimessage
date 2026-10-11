@@ -25,7 +25,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             "notifications", "stats", "inbox", "announce", "announcements");
     private static final List<String> TARGET_SUBCOMMANDS = List.of("mute", "unmute");
     private static final List<String> SLOWMODE_ARGS = List.of("off");
-    private static final List<String> ANNOUNCE_SUBS = List.of("reload", "list", "send", "help");
+    private static final List<String> ANNOUNCE_SUBS = List.of("reload", "list", "send", "toggle", "help");
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
     private final LPC plugin;
@@ -224,6 +224,12 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handleAnnouncements(CommandSender sender, String[] args) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("toggle") && sender instanceof org.bukkit.entity.Player pl) {
+            boolean on = plugin.getAnnouncementService().toggle(pl);
+            plugin.send(sender, mini(on ? "<#7EE2A8>Annunci automatici attivati."
+                    : "<#FF5C7A>Annunci automatici disattivati. <gray>Rifai <white>/lpc announcements toggle</white> per riattivarli."));
+            return;
+        }
         if (!sender.hasPermission("lpc.announcements")) {
             plugin.send(sender, mini("<red>Non hai il permesso."));
             return;

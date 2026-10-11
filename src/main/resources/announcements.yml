@@ -1,60 +1,169 @@
-# ┌─────────────────────────────────────────────────────────────────────┐
-# │  LPC Chat Suite — Auto Announcements                                │
-# │  Ispirato a InfiniteAnnouncements. File separato da config.yml.     │
-# │                                                                     │
-# │  Channel supportati:                                                │
-# │   - chat      (messaggio in chat, con prefix opzionale)             │
-# │   - actionbar (barra dell'azione)                                   │
-# │   - bossbar   (barra boss in alto — Paper only)                     │
-# │   - title     (titolo a tutto schermo — Paper only)                 │
-# │                                                                     │
-# │  Placeholders (MiniMessage): nessun placeholder giocatore; usa i    │
-# │  colori e tag standard di MiniMessage.                              │
-# └─────────────────────────────────────────────────────────────────────┘
+# Annunci automatici di Neverland (LPC 5.3.0).
+# Ogni annuncio: titolo con gradient + max 2 righe, riga vuota sopra e sotto.
+# Hover/click con MiniMessage: <click:run_command:'/cmd'> oppure <click:open_url:'https://...'>.
+# Canali: chat, actionbar, bossbar, title. Toggle giocatore: /lpc announcements toggle
 
 enabled: true
-
-# Intervallo di default tra un annuncio e l'altro (secondi).
-interval-seconds: 180
-
-# Se true, gli annunci sono inviati in ordine casuale (altrimenti ciclici).
-random: false
+interval-seconds: 240   # ogni 4 minuti
+random: true            # ordine casuale senza ripetizioni
+min-players: 2          # nessun annuncio con meno di 2 giocatori online
 
 announcements:
 
-  welcome:
+  wiki:
     channel: chat
-    prefix: "<dark_gray>[<gold>Annuncio</gold>]</dark_gray> "
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
     lines:
-      - "<yellow>Benvenuto nel server! Ricorda di leggere le regole in <white>/spawn</white>."
-    sound: ""
+      - ""
+      - "<gradient:#BE2086:#FED83D>Guida del server</gradient>"
+      - "<gray>Plugin, comandi e funzioni sono spiegati nella <#FED83D>/wiki</#FED83D><gray>."
+      - "<hover:show_text:'Clicca per aprire la wiki'><click:run_command:'/wiki'><gray>Se ti manca qualcosa, parti da lì.</click></hover>"
+      - ""
+
+  daily:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Ricompensa giornaliera</gradient>"
+      - "<gray>Hai già ritirato il regalo di oggi? Usa <#FED83D>/daily</#FED83D><gray>."
+      - "<hover:show_text:'Clicca per ritirare'><click:run_command:'/daily'><gray>Più giorni di fila, premio migliore.</click></hover>"
+      - ""
+
+  playtime:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Tempo di gioco</gradient>"
+      - "<gray>Controlla le tue ore con <#FED83D>/playtime</#FED83D><gray>."
+      - "<hover:show_text:'Clicca per vedere le tue ore'><click:run_command:'/playtime'><gray>Le ore giocate sbloccano dei premi.</click></hover>"
+      - ""
+
+  pesca:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Pesca e zone</gradient>"
+      - "<gray>Ogni zona ha pesci diversi: guarda la mappa con <#FED83D>/fishfx zone</#FED83D><gray>."
+      - "<hover:show_text:'Clicca per vedere le zone'><click:run_command:'/fishfx zone'><gray>Cambia zona per trovare quelli che ti mancano.</click></hover>"
+      - ""
+
+  eventi-pesca:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Eventi di pesca</gradient>"
+      - "<gray>Durante gli eventi di pesca contano i pesci catturati."
+      - "<gray>Tieni d’occhio la chat: chi pesca meglio vince un premio."
+      - ""
+
+  chatgames:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>ChatGames</gradient>"
+      - "<gray>Ogni tanto parte un gioco in chat: vince chi risponde per primo."
+      - "<hover:show_text:'Clicca per la classifica'><click:run_command:'/cg top'><gray>Classifica con <#FED83D>/cg top</#FED83D><gray>.</click></hover>"
+      - ""
+
+  collezioni:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Collezioni</gradient>"
+      - "<gray>Completa le collezioni di pesci e oggetti."
+      - "<hover:show_text:'Clicca per la classifica'><click:run_command:'/topcollezioni'><gray>Chi è in testa? Guarda <#FED83D>/topcollezioni</#FED83D><gray>.</click></hover>"
+      - ""
+
+  lands:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Lands</gradient>"
+      - "<gray>Proteggi la tua terra con <#FED83D>/lands</#FED83D><gray>."
+      - "<hover:show_text:'Clicca per aprire Lands'><click:run_command:'/lands'><gray>Invita gli amici e costruite insieme.</click></hover>"
+      - ""
+
+  shop:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Shop e premium</gradient>"
+      - "<gray>Il premium è solo comodità e cosmetici, nessun vantaggio nel gioco."
+      - "<hover:show_text:'Clicca per aprire lo shop'><click:run_command:'/shop'><gray>Chi non lo prende gioca alla pari. Shop: <#FED83D>/shop</#FED83D><gray>.</click></hover>"
+      - ""
 
   discord:
-    channel: actionbar
-    lines:
-      - "<gradient:#5865F2:#EB459E>Entra nel nostro Discord: discord.example.com</gradient>"
-    interval-seconds: 240
-
-  vote:
-    channel: bossbar
-    lines:
-      - "<green>Vota il server per ricevere ricompense!</green>"
-    bossbar:
-      color: green
-      overlay: progress
-      seconds: 5
-    sound: "entity.experience_orb.pickup"
-    sound-volume: 0.5
-    sound-pitch: 1.2
-    permission: ""   # Lascia vuoto per tutti
-    worlds: []       # Vuoto = tutti i mondi
-
-  website:
-    channel: title
-    lines:
-      - "<gold>Sito web"
-    subtitle: "<gray>www.example.com"
-    title-fade-in: 10
-    title-stay: 60
-    title-fade-out: 10
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
     interval-seconds: 300
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Discord</gradient>"
+      - "<gray>Eventi, novità e supporto su <#FED83D>discord.neverlanditalia.it</#FED83D><gray>."
+      - "<hover:show_text:'Apri il Discord'><click:open_url:'https://discord.neverlanditalia.it'><gray>Clicca per entrare.</click></hover>"
+      - ""
+
+  twitch:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    interval-seconds: 300
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Twitch</gradient>"
+      - "<gray>DaveToy95 va in diretta su <#FED83D>twitch.tv/davetoy95</#FED83D><gray>."
+      - "<hover:show_text:'Apri il canale Twitch'><click:open_url:'https://www.twitch.tv/davetoy95'><gray>Clicca per aprire il canale.</click></hover>"
+      - ""
+
+  airdrop:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Airdrop</gradient>"
+      - "<gray>Se vedi cadere un airdrop, corri a prenderlo."
+      - "<gray>Dentro c’è un bel bottino, ma non sei l’unico a volerlo."
+      - ""
+
+  vendita:
+    channel: chat
+    sound: "block.note_block.chime"
+    sound-volume: 0.3
+    sound-pitch: 1.4
+    lines:
+      - ""
+      - "<gradient:#BE2086:#FED83D>Vendita rapida</gradient>"
+      - "<gray>Con la canna in mano fai <#FED83D>shift + clic</#FED83D><gray> sul pesce per venderlo al volo."
+      - "<gray>Niente menu, niente file."
+      - ""

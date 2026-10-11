@@ -7,11 +7,14 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,11 +43,16 @@ public final class AnnouncementService {
     private volatile long defaultIntervalTicks;
     private volatile boolean randomOrder;
     private volatile List<Announcement> announcements = List.of();
+    private volatile int minPlayers;
+    private final List<Announcement> bag = new ArrayList<>();
+    private Announcement last;
+    private final NamespacedKey offKey;
     private final AtomicInteger index = new AtomicInteger(0);
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     public AnnouncementService(LPC plugin) {
         this.plugin = plugin;
+        this.offKey = new NamespacedKey(plugin, "announcements_off");
         reload();
     }
 
@@ -56,6 +64,8 @@ public final class AnnouncementService {
         this.enabled = cfg.getBoolean("enabled", true);
         this.defaultIntervalTicks = Math.max(60L, cfg.getLong("interval-seconds", 180)) * 20L;
         this.randomOrder = cfg.getBoolean("random", false);
+        this.minPlayers = cfg.getInt("min-players", 1);
+        bag.clear();
 
         List<Announcement> list = new ArrayList<>();
         ConfigurationSection s = cfg.getConfigurationSection("announcements");
@@ -99,7 +109,7 @@ public final class AnnouncementService {
         int titleFadeIn = a.getInt("title-fade-in", 10);
         int titleStay = a.getInt("title-stay", 60);
         int titleFadeOut = a.getInt("title-fade-out", 10);
-        String prefix = a.getString("prefix", "<dark_gray>[<gold>Annuncio</gold>]</dark_gray> ");
+        String prefix = a.getString("prefix", "");
         int weight = Math.max(1, a.getInt("weight", 1));
         long interval = a.getLong("interval-seconds", 0) * 20L;
         return new Announcement(lines, channel, permission, new HashSet<>(worlds), sound, soundVol, soundPitch,
@@ -122,8 +132,19 @@ public final class AnnouncementService {
     private void tick() {
         if (!running.get() || announcements.isEmpty()) return;
         Announcement a;
+        if (plugin.getServer().getOnlinePlayers().size() < minPlayers) {
+            scheduleNext(defaultIntervalTicks);
+            return;
+        }
         if (randomOrder) {
-            a = announcements.get(random.nextInt(announcements.size()));
+            // shuffle bag: every announcement once per round, never the same twice in a row
+            if (bag.isEmpty()) {
+                bag.addAll(announcements);
+                Collections.shuffle(bag, random);
+                if (bag.size() > 1 && bag.get(bag.size() - 1) == last) Collections.swap(bag, 0, bag.size() - 1);
+            }
+            a = bag.remove(bag.size() - 1);
+            last = a;
         } else {
             int i = index.getAndUpdate(v -> (v + 1) % announcements.size());
             a = announcements.get(i);
@@ -135,6 +156,7 @@ public final class AnnouncementService {
     public void broadcast(Announcement a) {
         plugin.getScheduler().run(() -> {
             for (Player p : plugin.getServer().getOnlinePlayers()) {
+                if (isOff(p)) continue;
                 if (a.permission != null && !a.permission.isEmpty() && !p.hasPermission(a.permission)) continue;
                 if (!a.worlds.isEmpty() && !a.worlds.contains(p.getWorld().getName())) continue;
                 deliver(p, a);
@@ -198,6 +220,18 @@ public final class AnnouncementService {
             BossBar bar = activeBars.remove(p.getUniqueId());
             if (bar != null && plugin.isPaper()) p.hideBossBar(bar);
         }
+    }
+
+    public boolean isOff(Player p) {
+        return p.getPersistentDataContainer().has(offKey, PersistentDataType.BYTE);
+    }
+
+    /** Toggles auto-announcements for a player; returns true if now enabled. */
+    public boolean toggle(Player p) {
+        var pdc = p.getPersistentDataContainer();
+        if (isOff(p)) { pdc.remove(offKey); return true; }
+        pdc.set(offKey, PersistentDataType.BYTE, (byte) 1);
+        return false;
     }
 
     public int count() { return announcements.size(); }

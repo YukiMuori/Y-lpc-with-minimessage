@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.3.0
+
+- **Auto-annunci**: con `random: true` ordine a "sacchetto" (ogni annuncio una volta per giro, mai lo stesso due volte di fila).
+- Nuovo `min-players` in announcements.yml: niente annunci se online meno giocatori del minimo.
+- Toggle per giocatore: `/lpc announcements toggle` (nessun permesso, salvato nel profilo del giocatore).
+- Il prefisso di default degli annunci e' ora vuoto (hover/click MiniMessage gia' supportati nel testo).
+- announcements.yml di esempio riscritto con 12 annunci per Neverland.
+
 ## 5.2.0
 
 - **ChatGames** integrati (sezione `chat-games` in config.yml): calcolo veloce, parola anagrammata,
