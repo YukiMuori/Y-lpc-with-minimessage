@@ -43,7 +43,10 @@ item-show:
   # to text brackets when unavailable (Spigot or older Paper).
   sprite: true
   color: "<aqua>"
-  bracket-color: "<gray>"
+  # {item} = icona + nome, {amount} = amount-format (solo se quantita' > 1)
+  format: "<dark_gray>⟦</dark_gray>{item}{amount}<dark_gray>⟧</dark_gray>"
+  amount-format: " <gray>×<white>{amount}</white></gray>"
+  empty-hand: "<dark_gray>⟦</dark_gray><gray>a mani vuote</gray><dark_gray>⟧</dark_gray>"
 
 # Allow players with 'lpc.chatcolor' to use <gradient> and <rainbow> tags in their messages.
 allow-gradient-tags: true

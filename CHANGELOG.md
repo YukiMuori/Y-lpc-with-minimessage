@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.3.1
+
+- **Fix [i]**: il componente oggetto non eredita piu' colore/stile del messaggio; nuovo formato `⟦ item ×N ⟧` configurabile (`item-show.format`, `amount-format`, `empty-hand`).
+
 ## 5.3.0
 
 - **Auto-annunci**: con `random: true` ordine a "sacchetto" (ogni annuncio una volta per giro, mai lo stesso due volte di fila).

@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -26,11 +27,17 @@ public final class ItemShowService {
 
     private static final Pattern ITEM_PATTERN = Pattern.compile("\\[(?:i|item)]", Pattern.CASE_INSENSITIVE);
 
+    static final String DEFAULT_FORMAT = "<dark_gray>⟦</dark_gray>{item}{amount}<dark_gray>⟧</dark_gray>";
+    static final String DEFAULT_AMOUNT = " <gray>×<white>{amount}</white></gray>";
+    static final String DEFAULT_EMPTY = "<dark_gray>⟦</dark_gray><gray>a mani vuote</gray><dark_gray>⟧</dark_gray>";
+
     private final LPC plugin;
     private volatile boolean enabled;
     private volatile boolean useSprite;
     private volatile String color;
-    private volatile String bracketColor;
+    private volatile String format;
+    private volatile String amountFormat;
+    private volatile String emptyHand;
 
     public ItemShowService(LPC plugin) {
         this.plugin = plugin;
@@ -44,7 +51,9 @@ public final class ItemShowService {
         // the sprite font at minecraft:item). Fall back to text-only when unavailable.
         this.useSprite = cfg.getBoolean("item-show.sprite", true) && plugin.isPaper() && hasSpriteSupport();
         this.color = cfg.getString("item-show.color", "<aqua>");
-        this.bracketColor = cfg.getString("item-show.bracket-color", "<gray>");
+        this.format = cfg.getString("item-show.format", DEFAULT_FORMAT);
+        this.amountFormat = cfg.getString("item-show.amount-format", DEFAULT_AMOUNT);
+        this.emptyHand = cfg.getString("item-show.empty-hand", DEFAULT_EMPTY);
     }
 
     public boolean isEnabled() { return enabled; }
@@ -60,10 +69,9 @@ public final class ItemShowService {
 
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item.getType() == Material.AIR) {
-            // If holding air, strip the token instead of leaving [i] literal
             return rendered.replaceText(TextReplacementConfig.builder()
                     .match(ITEM_PATTERN)
-                    .replacement(Component.empty())
+                    .replacement(isolate(mm(emptyHand)))
                     .build());
         }
 
@@ -91,30 +99,32 @@ public final class ItemShowService {
             spritePart = Component.empty();
         }
 
-        // Bracket: [ 🗡️ Diamond Sword x2 ]
-        Component bracketOpen = mm(bracketColor + "[");
-        Component bracketClose = mm(bracketColor + "]");
-        Component coloredName = mm(color).append(name).colorIfAbsent(NamedTextColor.AQUA);
-
-        Component amount = Component.empty();
-        if (item.getAmount() > 1) {
-            amount = mm(" <gray>x<white>" + item.getAmount());
-        }
-
-        Component line = Component.text(" ")
-                .append(spritePart)
-                .append(coloredName.decoration(TextDecoration.ITALIC, false))
-                .append(amount);
-
-        Component full = Component.empty()
-                .append(bracketOpen)
-                .append(line)
-                .append(bracketClose);
+        Component coloredName = mm(color).append(name).colorIfAbsent(NamedTextColor.AQUA)
+                .decoration(TextDecoration.ITALIC, false);
+        Component full = format(format, amountFormat, Component.empty().append(spritePart).append(coloredName),
+                item.getAmount());
 
         if (withHover && plugin.isPaper()) {
             full = full.hoverEvent(item.asHoverEvent());
         }
         return full;
+    }
+
+    /** Builds the final component; {item}/{amount} are placeholders, amount only shown when &gt; 1. */
+    static Component format(String format, String amountFormat, Component item, int amount) {
+        Component amt = amount > 1
+                ? mm(amountFormat.replace("{amount}", "<n>"), Placeholder.unparsed("n", String.valueOf(amount)))
+                : Component.empty();
+        Component full = mm(format.replace("{item}", "<item>").replace("{amount}", "<amount>"),
+                Placeholder.component("item", item), Placeholder.component("amount", amt));
+        return isolate(full);
+    }
+
+    /** Explicit white + no decorations so the surrounding message/nick style is not inherited. */
+    static Component isolate(Component c) {
+        Component base = Component.empty().color(NamedTextColor.WHITE);
+        for (TextDecoration d : TextDecoration.values()) base = base.decoration(d, false);
+        return base.append(c);
     }
 
     private Component itemName(ItemStack item) {
@@ -176,7 +186,7 @@ public final class ItemShowService {
         return sb.toString();
     }
 
-    private static Component mm(String text) {
-        return net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(text);
+    private static Component mm(String text, net.kyori.adventure.text.minimessage.tag.resolver.TagResolver... r) {
+        return net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(text, r);
     }
 }
