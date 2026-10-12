@@ -97,7 +97,7 @@ public final class StatisticsService {
     /** Sends a player their own stats. */
     public void showOwnStats(Player viewer) {
         if (!isEnabled()) {
-            plugin.send(viewer, mm.deserialize("<red>Statistics are disabled."));
+            plugin.send(viewer, mm.deserialize("<#FF5C7A>Statistiche disattivate."));
             return;
         }
         fetchPlayerStats(viewer.getUniqueId(), viewer.getName()).thenAccept(stats -> {
@@ -108,7 +108,7 @@ public final class StatisticsService {
     /** Sends stats for another player (requires lpc.stats.others). */
     public void showOtherStats(Player viewer, String targetName) {
         if (!viewer.hasPermission("lpc.stats.others")) {
-            plugin.send(viewer, mm.deserialize("<red>You don't have permission to view others' stats."));
+            plugin.send(viewer, mm.deserialize("<#FF5C7A>Non puoi vedere le statistiche degli altri."));
             return;
         }
         Player target = plugin.getServer().getPlayerExact(targetName);
@@ -121,7 +121,7 @@ public final class StatisticsService {
             // Lookup by last-known name via async DB query (best-effort)
             uuid = null;
             name = targetName;
-            plugin.send(viewer, mm.deserialize("<red>Player not found online."));
+            plugin.send(viewer, mm.deserialize("<#FF5C7A>Giocatore non online."));
             return;
         }
         fetchPlayerStats(uuid, name).thenAccept(stats -> {
@@ -157,7 +157,7 @@ public final class StatisticsService {
 
     private void sendPlayerStats(Player viewer, String name, Map<String, Long> s) {
         if (s == null) s = Map.of(); // DB unavailable/failed query
-        Component header = mm.deserialize("<gradient:#FED83D:#BE2086>LPC Stats</gradient> <gray>— <white><name></white>",
+        Component header = mm.deserialize("<#CCCCCC>Statistiche chat <dark_gray>— <white><name></white>",
                 Placeholder.unparsed("name", name));
         plugin.send(viewer, header);
         plugin.send(viewer, line("messages_sent", "Chat messages", s.get("messages_sent")));

@@ -63,7 +63,7 @@ public final class PrivateMessageService {
         this.socialSpyFormat = c.getString("social-spy.format",
                 "<dark_gray>[SocialSpy]</dark_gray> <gray>{sender} <dark_gray>→</dark_gray> {receiver}: <white>{message}</white>");
         this.noReplyMessage = c.getString("private-messages.no-reply", "<red>No player to reply to.");
-        this.playerNotFoundMessage = c.getString("private-messages.player-not-found", "<red>Player not found.");
+        this.playerNotFoundMessage = c.getString("private-messages.player-not-found", "<#FF5C7A>Giocatore non trovato.");
         this.playerOfflineMessage = c.getString("private-messages.player-offline", "<red>{name} is not online.");
         this.ignoredMessage = c.getString("private-messages.ignored", "<red>You cannot message that player.");
         this.disabledPmMessage = c.getString("private-messages.disabled", "<red>That player has private messages disabled.");
@@ -88,7 +88,7 @@ public final class PrivateMessageService {
 
         // Permission checks
         if (!sender.hasPermission("lpc.msg")) {
-            plugin.send(sender, mini("<red>You don't have permission to send private messages."));
+            plugin.send(sender, mini("<#FF5C7A>Non hai il permesso di inviare messaggi privati."));
             return false;
         }
 
@@ -108,7 +108,7 @@ public final class PrivateMessageService {
         }
         if (ignore.isEnabled() && !ignore.hasBypass(sender) && ignore.isIgnoring(sender, target.getUniqueId())) {
             // You have ignored them
-            plugin.send(sender, mini("<red>You are ignoring that player. Use /ignore <name> to remove."));
+            plugin.send(sender, mini("<#FF5C7A>Stai ignorando questo giocatore. <#9C9C9C>/ignore <nome> per smettere."));
             return false;
         }
 
@@ -184,7 +184,7 @@ public final class PrivateMessageService {
     public boolean reply(Player sender, String rawMessage) {
         if (!enabled) return false;
         if (!sender.hasPermission("lpc.reply") && !sender.hasPermission("lpc.msg")) {
-            plugin.send(sender, mini("<red>You don't have permission to reply."));
+            plugin.send(sender, mini("<#FF5C7A>Non hai il permesso di rispondere."));
             return false;
         }
         UUID targetId = replyTarget.get(sender.getUniqueId());

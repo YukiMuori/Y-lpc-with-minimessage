@@ -37,16 +37,16 @@ public final class IgnoreCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
                              @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can use /ignore.");
+            sender.sendMessage("Solo in gioco.");
             return true;
         }
         if (!player.hasPermission("lpc.ignore")) {
-            plugin.send(player, mm.deserialize("<red>You don't have permission to use ignore."));
+            plugin.send(player, mm.deserialize("<#FF5C7A>Non hai il permesso."));
             return true;
         }
         var ignore = plugin.getIgnoreService();
         if (!ignore.isEnabled()) {
-            plugin.send(player, mm.deserialize("<red>Ignore is disabled."));
+            plugin.send(player, mm.deserialize("<#FF5C7A>Ignora è disattivato."));
             return true;
         }
         if (args.length == 0) {
@@ -60,7 +60,7 @@ public final class IgnoreCommand implements CommandExecutor, TabCompleter {
             // Try exact online match
             Player online = plugin.getServer().getPlayerExact(targetName);
             if (online == null) {
-                plugin.send(player, mm.deserialize("<red>Player not found."));
+                plugin.send(player, mm.deserialize("<#FF5C7A>Giocatore non trovato."));
                 return true;
             }
             target = online;
@@ -70,16 +70,16 @@ public final class IgnoreCommand implements CommandExecutor, TabCompleter {
         if (target.isOnline()) {
             Player onlineTarget = target.getPlayer();
             if (onlineTarget != null && ignore.hasBypass(onlineTarget)) {
-                plugin.send(player, mm.deserialize("<red>You cannot ignore that player."));
+                plugin.send(player, mm.deserialize("<#FF5C7A>Non puoi ignorare questo giocatore."));
                 return true;
             }
         }
         boolean nowIgnored = ignore.toggle(player, targetId, target.getName() == null ? targetName : target.getName());
         if (nowIgnored) {
-            plugin.send(player, mm.deserialize("<gray>Now ignoring <white><name></white>.",
+            plugin.send(player, mm.deserialize("<#CCCCCC>Ora ignori <white><name></white>.",
                     net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("name", targetName)));
         } else {
-            plugin.send(player, mm.deserialize("<gray>No longer ignoring <white><name></white>.",
+            plugin.send(player, mm.deserialize("<#CCCCCC>Non ignori più <white><name></white>.",
                     net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("name", targetName)));
         }
         return true;
@@ -87,9 +87,9 @@ public final class IgnoreCommand implements CommandExecutor, TabCompleter {
 
     private void showList(Player player) {
         Set<UUID> ignored = plugin.getIgnoreService().getIgnored(player);
-        plugin.send(player, mm.deserialize("<gradient:#FED83D:#BE2086>Ignore list</gradient> <gray>(" + ignored.size() + ")"));
+        plugin.send(player, mm.deserialize("<#FED83D>Giocatori ignorati</#FED83D> <#9C9C9C>(" + ignored.size() + ")"));
         if (ignored.isEmpty()) {
-            plugin.send(player, mm.deserialize("<gray>You are not ignoring anyone."));
+            plugin.send(player, mm.deserialize("<#9C9C9C>Non stai ignorando nessuno."));
             return;
         }
         for (UUID id : ignored) {

@@ -37,12 +37,12 @@ public final class ClearChatService {
     public void clearChat(Player staff) {
         if (!enabled) return;
         if (!staff.hasPermission("lpc.clearchat")) {
-            plugin.send(staff, mm.deserialize("<red>You don't have permission to do that."));
+            plugin.send(staff, mm.deserialize("<#FF5C7A>Non hai il permesso."));
             return;
         }
         Component blank = Component.text("");
         Component notice = mm.deserialize(clearedMessage);
-        Component header = mm.deserialize("<gradient:#FED83D:#BE2086>LPC</gradient> <gray>— ");
+        Component header = mm.deserialize("<#CCCCCC>Chat <dark_gray>— ");
         for (Player p : plugin.getServer().getOnlinePlayers()) {
             if (p.hasPermission("lpc.clearchat.bypass")) continue;
             for (int i = 0; i < lines; i++) {

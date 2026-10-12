@@ -50,7 +50,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             case "slowmode" -> handleSlowMode(sender, args);
             case "clearchat", "cc" -> {
                 if (sender instanceof Player p) plugin.getClearChatService().clearChat(p);
-                else sender.sendMessage("Only players can clear chat.");
+                else sender.sendMessage("Solo in gioco.");
             }
             case "notifications" -> handleNotifications(sender, args);
             case "stats" -> handleStats(sender, args);
@@ -65,7 +65,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
 
     private void handleReload(CommandSender sender) {
         if (!sender.hasPermission("lpc.reload")) {
-            plugin.send(sender, mini("<red>You don't have permission to do that."));
+            plugin.send(sender, mini("<#FF5C7A>Non hai il permesso."));
             return;
         }
         plugin.reloadConfig();
@@ -99,53 +99,53 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
 
     private void handleMute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("lpc.mute")) {
-            plugin.send(sender, mini("<red>You don't have permission to do that."));
+            plugin.send(sender, mini("<#FF5C7A>Non hai il permesso."));
             return;
         }
         if (!plugin.getMuteService().areCommandsEnabled()) {
-            plugin.send(sender, mini("<red>Mute commands are disabled in the config."));
+            plugin.send(sender, mini("<#FF5C7A>Il mute è disattivato nel config."));
             return;
         }
         if (args.length < 2) {
-            plugin.send(sender, mini("<red>Usage: /lpc mute <player> [duration e.g. 10m]"));
+            plugin.send(sender, mini("<#CCCCCC>Uso: <#FED83D>/lpc mute <giocatore> [durata es. 10m]"));
             return;
         }
         Player target = plugin.getServer().getPlayerExact(args[1]);
         if (target == null) {
-            plugin.send(sender, mini("<red>Player <white><name></white> is not online.", "name", args[1]));
+            plugin.send(sender, mini("<#FF5C7A><white><name></white> non è online.", "name", args[1]));
             return;
         }
         long duration = args.length >= 3 ? parseDuration(args[2]) : 0L;
         plugin.getMuteService().mute(target.getUniqueId(), System.currentTimeMillis(), duration);
         String suffix = duration > 0 ? " for " + args[2] : " permanently";
-        plugin.send(sender, mini("<green>Muted <white><name></white>" + suffix + ".", "name", target.getName()));
+        plugin.send(sender, mini("<#7EE2A8>Mutato <white><name></white>" + suffix + ".", "name", target.getName()));
     }
 
     private void handleUnmute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("lpc.mute")) {
-            plugin.send(sender, mini("<red>You don't have permission to do that."));
+            plugin.send(sender, mini("<#FF5C7A>Non hai il permesso."));
             return;
         }
         if (args.length < 2) {
-            plugin.send(sender, mini("<red>Usage: /lpc unmute <player>"));
+            plugin.send(sender, mini("<#CCCCCC>Uso: <#FED83D>/lpc unmute <giocatore>"));
             return;
         }
         Player target = plugin.getServer().getPlayerExact(args[1]);
         if (target == null) {
-            plugin.send(sender, mini("<red>Player <white><name></white> is not online.", "name", args[1]));
+            plugin.send(sender, mini("<#FF5C7A><white><name></white> non è online.", "name", args[1]));
             return;
         }
         plugin.getMuteService().unmute(target.getUniqueId());
-        plugin.send(sender, mini("<green>Unmuted <white><name></white>.", "name", target.getName()));
+        plugin.send(sender, mini("<#7EE2A8>Smutato <white><name></white>.", "name", target.getName()));
     }
 
     private void handleSlowMode(CommandSender sender, String[] args) {
         if (!sender.hasPermission("lpc.slowmode")) {
-            plugin.send(sender, mini("<red>You don't have permission to do that."));
+            plugin.send(sender, mini("<#FF5C7A>Non hai il permesso."));
             return;
         }
         if (args.length < 2) {
-            plugin.send(sender, mini("<red>Usage: /lpc slowmode <seconds|off>"));
+            plugin.send(sender, mini("<#CCCCCC>Uso: <#FED83D>/lpc slowmode <secondi|off>"));
             return;
         }
         int seconds;
@@ -155,26 +155,26 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
             try {
                 seconds = Math.max(0, Integer.parseInt(args[1]));
             } catch (NumberFormatException e) {
-                plugin.send(sender, mini("<red>Invalid number: <white><arg></white>", "arg", args[1]));
+                plugin.send(sender, mini("<#FF5C7A>Numero non valido: <white><arg></white>", "arg", args[1]));
                 return;
             }
         }
         int newVal = plugin.getSlowModeService().setSlowMode(seconds);
         if (newVal == 0) {
-            plugin.send(sender, mini("<green>Slow mode disabled."));
+            plugin.send(sender, mini("<#7EE2A8>Slow mode disattivata."));
         } else {
-            plugin.send(sender, mini("<green>Slow mode set to <white><seconds></white>s.",
+            plugin.send(sender, mini("<#7EE2A8>Slow mode: <white><seconds></white>s.",
                     "seconds", Integer.toString(newVal)));
         }
     }
 
     private void handleNotifications(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can toggle notifications.");
+            sender.sendMessage("Solo in gioco.");
             return;
         }
         if (!player.hasPermission("lpc.notifications")) {
-            plugin.send(player, mini("<red>You don't have permission."));
+            plugin.send(player, mini("<#FF5C7A>Non hai il permesso."));
             return;
         }
         if (args.length < 2) {
@@ -194,7 +194,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
 
     private void handleInbox(CommandSender sender) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can check their inbox.");
+            sender.sendMessage("Solo in gioco.");
             return;
         }
         var inbox = plugin.getInboxService();
@@ -265,7 +265,7 @@ public class LPCCommand implements CommandExecutor, TabCompleter {
 
     private void handleStats(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can view statistics.");
+            sender.sendMessage("Solo in gioco.");
             return;
         }
         if (args.length < 2) {

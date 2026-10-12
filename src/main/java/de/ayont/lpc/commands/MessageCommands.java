@@ -52,12 +52,12 @@ public final class MessageCommands implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
                              @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can use private messages.");
+            sender.sendMessage("Solo in gioco.");
             return true;
         }
         if (reply) {
             if (args.length == 0) {
-                plugin.send(player, mm.deserialize("<red>Usage: /r <message>"));
+                plugin.send(player, mm.deserialize("<#CCCCCC>Uso: <#FED83D>/r <messaggio>"));
                 return true;
             }
             String msg = String.join(" ", args);
@@ -65,18 +65,18 @@ public final class MessageCommands implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 2) {
-            plugin.send(player, mm.deserialize("<red>Usage: /" + label + " <player> <message>"));
+            plugin.send(player, mm.deserialize("<#CCCCCC>Uso: <#FED83D>/" + label + " <giocatore> <messaggio>"));
             return true;
         }
         String targetName = args[0];
         String msg = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
         Player target = plugin.getServer().getPlayerExact(targetName);
         if (target == null) {
-            plugin.send(player, mm.deserialize("<red>Player not online."));
+            plugin.send(player, mm.deserialize("<#FF5C7A>Il giocatore non è online."));
             return true;
         }
         if (target.equals(player)) {
-            plugin.send(player, mm.deserialize("<red>You cannot message yourself."));
+            plugin.send(player, mm.deserialize("<#FF5C7A>Non puoi scrivere a te stesso."));
             return true;
         }
         plugin.getPrivateMessageService().sendMessage(player, target, msg);

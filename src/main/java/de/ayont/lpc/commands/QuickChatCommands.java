@@ -46,7 +46,7 @@ public final class QuickChatCommands implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
                              @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can use this command.");
+            sender.sendMessage("Solo in gioco.");
             return true;
         }
         switch (type) {
@@ -59,15 +59,15 @@ public final class QuickChatCommands implements CommandExecutor, TabCompleter {
 
     private void handleStaffChat(Player player, String[] args) {
         if (!player.hasPermission("lpc.staffchat")) {
-            plugin.send(player, mm.deserialize("<red>You don't have permission to use staff chat."));
+            plugin.send(player, mm.deserialize("<#FF5C7A>Non hai il permesso per la chat staff."));
             return;
         }
         if (args.length == 0) {
             // toggle mode
             boolean on = plugin.getPlayerSettingsService().toggleStaffChat(player);
             plugin.send(player, mm.deserialize(on
-                    ? "<gradient:#FED83D:#BE2086>Staff chat</gradient> <green>enabled</green>. All messages will go to staff."
-                    : "<gradient:#FED83D:#BE2086>Staff chat</gradient> <red>disabled</red>."));
+                    ? "<white><font:nexo:default>ꘀ</font></white> <dark_gray>»</dark_gray> <#F5A3AA>Chat staff <#7EE2A8>attivata<#9C9C9C>: ora scrivi solo allo staff."
+                    : "<white><font:nexo:default>ꘀ</font></white> <dark_gray>»</dark_gray> <#F5A3AA>Chat staff <#FF5C7A>disattivata<#9C9C9C>."));
             return;
         }
         String message = String.join(" ", args);
@@ -76,13 +76,13 @@ public final class QuickChatCommands implements CommandExecutor, TabCompleter {
 
     private void handleSocialSpy(Player player) {
         if (!player.hasPermission("lpc.socialspy")) {
-            plugin.send(player, mm.deserialize("<red>You don't have permission."));
+            plugin.send(player, mm.deserialize("<#FF5C7A>Non hai il permesso."));
             return;
         }
         boolean on = plugin.getPlayerSettingsService().toggleSocialSpy(player);
         plugin.send(player, mm.deserialize(on
-                ? "<dark_gray>[SocialSpy]</dark_gray> <green>enabled</green>."
-                : "<dark_gray>[SocialSpy]</dark_gray> <red>disabled</red>."));
+                ? "<white><font:nexo:default>ꘋ</font></white> <dark_gray>»</dark_gray> <#EEEEEE>Spia messaggi <#7EE2A8>attivata<#9C9C9C>."
+                : "<white><font:nexo:default>ꘋ</font></white> <dark_gray>»</dark_gray> <#EEEEEE>Spia messaggi <#FF5C7A>disattivata<#9C9C9C>."));
     }
 
     @Override

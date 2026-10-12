@@ -26,7 +26,7 @@ public class InboxCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command c, @NotNull String l,
                              @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can check their inbox.");
+            sender.sendMessage("Solo in gioco.");
             return true;
         }
         if (!player.hasPermission("lpc.inbox")) {

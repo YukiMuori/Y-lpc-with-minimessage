@@ -44,7 +44,7 @@ public final class StaffChatService {
     public void sendMessage(Player sender, String rawMessage) {
         if (!enabled) return;
         if (!sender.hasPermission("lpc.staffchat")) {
-            plugin.send(sender, mm.deserialize("<red>You don't have permission to use staff chat."));
+            plugin.send(sender, mm.deserialize("<#FF5C7A>Non hai il permesso per la chat staff."));
             return;
         }
 
