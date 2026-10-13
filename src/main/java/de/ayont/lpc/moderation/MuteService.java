@@ -22,6 +22,7 @@ public final class MuteService {
     private volatile boolean commandsEnabled;
     private volatile String permissionNode;
     private volatile String message;
+    private volatile boolean cmiHook;
 
     public MuteService(LPC plugin) {
         this.plugin = plugin;
@@ -33,6 +34,8 @@ public final class MuteService {
         this.commandsEnabled = plugin.getConfig().getBoolean("mute.enable-commands", true);
         this.permissionNode = plugin.getConfig().getString("mute.permission-node", "lpc.muted");
         this.message = plugin.getConfig().getString("mute.message", "<red>You are currently muted.");
+        this.cmiHook = plugin.getConfig().getBoolean("mute.cmi-hook", false)
+                && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
     }
 
     public boolean isEnabled() {
@@ -51,7 +54,20 @@ public final class MuteService {
         if (!permissionNode.isEmpty() && player.hasPermission(permissionNode)) {
             return true;
         }
-        return isTempMuted(player.getUniqueId(), now);
+        return isTempMuted(player.getUniqueId(), now) || isCmiMuted(player);
+    }
+
+    /** CMI /cmi mute, read through PlaceholderAPI (%cmi_user_muted% = true/false). */
+    private boolean isCmiMuted(org.bukkit.entity.Player player) {
+        if (!cmiHook) {
+            return false;
+        }
+        try {
+            String v = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, "%cmi_user_muted%");
+            return "true".equalsIgnoreCase(v) || "yes".equalsIgnoreCase(v) || "si".equalsIgnoreCase(v);
+        } catch (RuntimeException e) {
+            return false; // fail open: a broken placeholder must never silence the chat
+        }
     }
 
     /** Pure temp-mute check with lazy expiry. */

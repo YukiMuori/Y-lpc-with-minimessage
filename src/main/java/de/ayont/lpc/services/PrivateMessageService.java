@@ -92,6 +92,16 @@ public final class PrivateMessageService {
             return false;
         }
 
+        // Mute / profanity / advert (same rules as public chat; the original stays in the console log).
+        de.ayont.lpc.moderation.ModResult moderated = plugin.getModerationService().processPrivate(sender, rawMessage);
+        if (moderated.isBlocked()) {
+            plugin.getModerationService().sendNotice(sender, moderated.notice());
+            return false;
+        }
+        if (moderated.action() == de.ayont.lpc.moderation.ModResult.Action.TRANSFORM) {
+            rawMessage = moderated.text();
+        }
+
         // Vanish visibility: a non-vanished player may NOT message a vanished player they
         // cannot see. If the sender cannot see the target (target vanished & sender lacks
         // vanish-override permission), treat target as offline.

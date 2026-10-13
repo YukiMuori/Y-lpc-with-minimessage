@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.4.0
+
+- **Profanity filter**: parole in regex con confini di parola (niente falsi positivi tipo "scusa"), varianti leet, lettere ripetute, separatori, `stem*`; censura a pari lunghezza anche delle varianti.
+- **Anti-advert**: solo TLD noti (niente "ciao.come"), `(dot)`/`[dot]`, allowlist per host/sottodomini/percorso (non piu' `contains`: `evil.com/?neverlanditalia.it` non passa).
+- **Avviso staff** (`moderation.notify`, permesso `lpc.moderation.notify`) + riga in console; avvisi al giocatore in chat o actionbar (`moderation.notice-channel`).
+- **Mute**: `mute.cmi-hook` rispetta `/cmi mute` (via `%cmi_user_muted%`).
+- **PM**: `/msg` e `/r` applicano mute, parolacce e pubblicita'.
+- **flood-filter**: `max-repeated-chars` accorcia le lettere ripetute.
+
 ## 5.3.1
 
 - **Fix [i]**: il componente oggetto non eredita piu' colore/stile del messaggio; nuovo formato `⟦ item ×N ⟧` configurabile (`item-show.format`, `amount-format`, `empty-hand`).

@@ -1,6 +1,8 @@
 package de.ayont.lpc.moderation;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -13,8 +15,13 @@ import java.util.regex.Pattern;
  */
 public final class TextChecks {
 
+    // A bare "word.word" is only a link when the TLD is a known one (avoids "ciao.come stai").
+    private static final String DOT = "(?:\\.|\\s?[\\(\\[]dot[\\)\\]]\\s?|\\s+dot\\s+)";
+    private static final String TLDS = "(?:it|com|net|org|gg|io|tv|eu|xyz|club|info|biz|us|uk|de|fr|es|ru|ly|cc|online|site|live"
+            + "|fun|top|app|dev|gl|be|tk|ml|ga|cf|gq|lol|store|shop|link|cloud|host|pw|ovh)";
     private static final Pattern URL = Pattern.compile(
-            "(?i)(?:https?://)?(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:/\\S*)?");
+            "(?i)(?:https?://\\S+|www\\.\\S+|(?<![\\w.@-])(?:[a-z0-9-]+" + DOT + ")+" + TLDS + "(?![a-z0-9])(?:/\\S*)?)");
+    private static final Pattern DOT_VARIANT = Pattern.compile("(?i)\\s?[\\(\\[]dot[\\)\\]]\\s?|\\s+dot\\s+");
     private static final Pattern IP = Pattern.compile(
             "(?:\\d{1,3}\\.){3}\\d{1,3}(?::\\d{1,5})?");
 
@@ -139,13 +146,108 @@ public final class TextChecks {
         return sb.toString();
     }
 
+    /** Lowercase, no scheme, no "www.", "(dot)" folded to "." so hosts compare reliably. */
+    private static String canonical(String link) {
+        String m = DOT_VARIANT.matcher(link.trim().toLowerCase(Locale.ROOT)).replaceAll(".");
+        m = m.replaceFirst("^https?://", "");
+        return m.startsWith("www.") ? m.substring(4) : m;
+    }
+
+    /**
+     * Host-aware allowlist: an entry without "/" allows that host and its subdomains; an entry with a
+     * path allows that path and anything below it. "evil.com/?neverlanditalia.it" is NOT allowed.
+     */
     private static boolean isAllowlisted(String match, Collection<String> allowlist) {
-        String lower = match.toLowerCase(Locale.ROOT);
-        for (String allowed : allowlist) {
-            if (!allowed.isEmpty() && lower.contains(allowed.toLowerCase(Locale.ROOT))) {
+        String m = canonical(match);
+        int cut = m.indexOf('/');
+        String host = (cut < 0 ? m : m.substring(0, cut));
+        int colon = host.indexOf(':');
+        if (colon >= 0) host = host.substring(0, colon);
+        for (String entry : allowlist) {
+            String a = canonical(entry);
+            if (a.isEmpty()) continue;
+            if (a.indexOf('/') >= 0) {
+                if (m.equals(a) || m.startsWith(a + "/") || m.startsWith(a + "?")) return true;
+            } else if (host.equals(a) || host.endsWith("." + a)) {
                 return true;
             }
         }
         return false;
+    }
+
+    // ---- Profanity (word-boundary regex built from plain words) ----
+
+    private static String letterClass(char c) {
+        return switch (c) {
+            case 'a' -> "[a4@àá*]";
+            case 'e' -> "[e3èé*]";
+            case 'i' -> "[i1!|ìí*]";
+            case 'o' -> "[o0òó*]";
+            case 'u' -> "[uùúü*]";
+            case 'c' -> "[ck(]";
+            case 's' -> "[s5$]";
+            case 't' -> "[t7]";
+            case 'g' -> "[g9]";
+            default -> Pattern.quote(String.valueOf(c));
+        };
+    }
+
+    /**
+     * Builds one pattern per word. Letters match leet variants and may be repeated ("cazzzo"), one
+     * separator may sit between letters ("c.a.z.z.o"), a space in the entry matches a short gap, a
+     * trailing '*' accepts any ending ("stronz*"). The word must not touch other letters, so
+     * "scusa" or "analisi" never match.
+     */
+    public static List<Pattern> buildProfanityPatterns(Collection<String> words) {
+        List<Pattern> out = new ArrayList<>();
+        for (String raw : words) {
+            String w = raw.trim().toLowerCase(Locale.ROOT);
+            boolean stem = w.endsWith("*");
+            if (stem) w = w.substring(0, w.length() - 1);
+            if (w.isEmpty()) continue;
+            StringBuilder sb = new StringBuilder("(?<![\\p{L}\\p{N}])");
+            for (int i = 0; i < w.length(); i++) {
+                char c = w.charAt(i);
+                if (c == ' ') {
+                    sb.append("[\\s.,_*-]{0,3}");
+                    continue;
+                }
+                sb.append(letterClass(c)).append('+');
+                if (i + 1 < w.length() && w.charAt(i + 1) != ' ') sb.append("[.,_*-]?");
+            }
+            sb.append(stem ? "[\\p{L}\\p{N}*]*" : "(?![\\p{L}])");
+            out.add(Pattern.compile(sb.toString(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE));
+        }
+        return out;
+    }
+
+    /** Replaces every match with maskChar repeated to the matched length (same length, no leaks). */
+    public static String maskProfanity(String text, List<Pattern> patterns, char maskChar) {
+        String result = text;
+        for (Pattern p : patterns) {
+            Matcher m = p.matcher(result);
+            StringBuilder sb = new StringBuilder();
+            while (m.find()) {
+                m.appendReplacement(sb, Matcher.quoteReplacement(String.valueOf(maskChar).repeat(m.end() - m.start())));
+            }
+            m.appendTail(sb);
+            result = sb.toString();
+        }
+        return result;
+    }
+
+    /** Shortens runs of the same character ("ciaooooooo" -> "ciaooo" with max 3). max &lt;= 0 = off. */
+    public static String collapseRuns(String text, int max) {
+        if (max <= 0) return text;
+        StringBuilder sb = new StringBuilder(text.length());
+        int run = 0;
+        char prev = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            run = (c == prev) ? run + 1 : 1;
+            prev = c;
+            if (run <= max) sb.append(c);
+        }
+        return sb.toString();
     }
 }

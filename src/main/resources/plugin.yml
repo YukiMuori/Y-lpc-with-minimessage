@@ -81,6 +81,9 @@ permissions:
   lpc.muted:
     description: Marks a player as muted.
     default: false
+  lpc.moderation.notify:
+    description: Receive staff alerts when the chat filters censor a message.
+    default: op
   lpc.bypass.spam:
     description: Bypass the anti-spam cooldown.
     default: op

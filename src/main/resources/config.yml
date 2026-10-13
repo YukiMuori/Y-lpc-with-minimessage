@@ -259,6 +259,11 @@ death-messages:
 # ─────────────────────────────────────────────────────────────────────────
 moderation:
   enabled: false
+  notice-channel: CHAT          # CHAT | ACTIONBAR (avvisi al giocatore)
+  notify:                       # avviso staff quando un filtro censura (permesso lpc.moderation.notify)
+    enabled: false
+    permission: "lpc.moderation.notify"
+    format: "<red>[<type>] <player>: <message>"
 
 anti-spam:
   enabled: true
@@ -277,9 +282,14 @@ caps-filter:
   action: LOWERCASE
   message: "<red>Non scrivere in maiuscolo."
 
+flood-filter:
+  max-repeated-chars: 0         # 0 = spento; es. 4 accorcia "ciaooooooo" in "ciaooo"
+
 profanity-filter:
   enabled: false
   action: MASK
+  # Parole semplici: varianti leet, lettere ripetute e separatori sono gestiti dal filtro.
+  # "stronz*" = qualsiasi finale; uno spazio = piccola pausa tra parole.
   words: []
   mask-char: "*"
   message: "<red>Language."
@@ -289,7 +299,7 @@ anti-advert:
   action: REDACT
   detect-ip: true
   allowlist: []
-  mask: "[link removed]"
+  mask: "[link rimosso]"
   message: "<red>Non pubblicizzare link."
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -297,6 +307,7 @@ anti-advert:
 # ─────────────────────────────────────────────────────────────────────────
 mute:
   enabled: false
+  cmi-hook: false               # true = rispetta anche /cmi mute (serve PlaceholderAPI + CMI)
   enable-commands: true
   permission-node: "lpc.muted"
   message: "<red>Sei mutato."

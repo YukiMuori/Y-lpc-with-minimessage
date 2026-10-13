@@ -70,4 +70,45 @@ class TextChecksTest {
         assertEquals("watch youtube.com today",
                 TextChecks.maskAdvert("watch youtube.com today", false, List.of("youtube.com"), "[link]"));
     }
+
+    private static final List<java.util.regex.Pattern> PROF = TextChecks.buildProfanityPatterns(
+            List.of("cazzo", "stronz*", "merda", "culo", "porco dio", "vaffanculo", "fuck*", "puttan*"));
+
+    @Test
+    @DisplayName("profanity: variants masked, normal words untouched")
+    void profanity_variantsAndFalsePositives() {
+        assertEquals("che ***** fai", TextChecks.maskProfanity("che cazzo fai", PROF, '*'));
+        assertEquals("che ***** fai", TextChecks.maskProfanity("che c4zz0 fai", PROF, '*'));
+        assertEquals("sei *******", TextChecks.maskProfanity("sei STRONZA", PROF, '*'));
+        assertEquals("********", TextChecks.maskProfanity("porcodio", PROF, '*'));
+        assertEquals("*******", TextChecks.maskProfanity("c.u.l.o.", PROF, '*').substring(0, 7));
+        for (String ok : List.of("scusa", "analisi", "classe", "articolo", "ridicolo", "secolo", "cultura",
+                "scusate la merenda", "il mio pc ha un bug", "ciao a tutti", "tazza", "mandarino")) {
+            assertEquals(ok, TextChecks.maskProfanity(ok, PROF, '*'));
+        }
+    }
+
+    @Test
+    @DisplayName("advert: known TLDs only, host-aware allowlist")
+    void advert_allowlistHostAware() {
+        List<String> allow = List.of("neverlanditalia.it", "twitch.tv/davetoy95");
+        assertFalse(TextChecks.containsAdvert("ciao.come stai", true, allow));
+        assertFalse(TextChecks.containsAdvert("vai su discord.neverlanditalia.it", true, allow));
+        assertFalse(TextChecks.containsAdvert("https://www.neverlanditalia.it/wiki", true, allow));
+        assertFalse(TextChecks.containsAdvert("twitch.tv/davetoy95", true, allow));
+        assertTrue(TextChecks.containsAdvert("twitch.tv/altro", true, allow));
+        assertTrue(TextChecks.containsAdvert("evil.com/?neverlanditalia.it", true, allow));
+        assertTrue(TextChecks.containsAdvert("fakeneverlanditalia.it", true, allow));
+        assertTrue(TextChecks.containsAdvert("entra su play (dot) server dot net", true, allow));
+        assertTrue(TextChecks.containsAdvert("ip 51.38.12.9:25565", true, allow));
+        assertTrue(TextChecks.containsAdvert("www.sito.boh", true, allow));
+        assertFalse(TextChecks.containsAdvert("alle 10.30 ci vediamo", true, allow));
+    }
+
+    @Test
+    @DisplayName("collapseRuns shortens repeated characters")
+    void collapseRuns_works() {
+        assertEquals("ciaooo", TextChecks.collapseRuns("ciaooooooo", 3));
+        assertEquals("ciaoooooo", TextChecks.collapseRuns("ciaoooooo", 0));
+    }
 }

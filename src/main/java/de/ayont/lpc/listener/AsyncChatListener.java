@@ -64,7 +64,7 @@ public class AsyncChatListener implements Listener {
             event.setCancelled(true);
             plugin.getStatisticsService().incrementBlocked(player);
             if (moderation.notice() != null) {
-                plugin.send(player, moderation.notice());
+                plugin.getModerationService().sendNotice(player, moderation.notice());
             }
             return;
         }

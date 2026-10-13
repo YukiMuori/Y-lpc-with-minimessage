@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,8 +45,7 @@ public final class ModerationService {
     private volatile String capsMessage;
     private volatile boolean profanityEnabled;
     private volatile boolean profanityBlock;
-    private volatile List<String> profanityWords;
-    private volatile List<String> profanityNormalized;
+    private volatile List<Pattern> profanityPatterns;
     private volatile char profanityMaskChar;
     private volatile String profanityMessage;
     private volatile boolean advertEnabled;
@@ -54,6 +54,11 @@ public final class ModerationService {
     private volatile List<String> advertAllowlist;
     private volatile String advertMask;
     private volatile String advertMessage;
+    private volatile int floodMaxRun;
+    private volatile boolean notifyEnabled;
+    private volatile String notifyPermission;
+    private volatile String notifyFormat;
+    private volatile boolean noticeActionbar;
 
     public ModerationService(LPC plugin, MuteService muteService) {
         this.plugin = plugin;
@@ -81,8 +86,7 @@ public final class ModerationService {
 
         this.profanityEnabled = config.getBoolean("profanity-filter.enabled", false);
         this.profanityBlock = "BLOCK".equalsIgnoreCase(config.getString("profanity-filter.action", "MASK"));
-        this.profanityWords = List.copyOf(config.getStringList("profanity-filter.words"));
-        this.profanityNormalized = this.profanityWords.stream().map(TextChecks::normalize).toList();
+        this.profanityPatterns = TextChecks.buildProfanityPatterns(config.getStringList("profanity-filter.words"));
         String maskChar = config.getString("profanity-filter.mask-char", "*");
         this.profanityMaskChar = maskChar.isEmpty() ? '*' : maskChar.charAt(0);
         this.profanityMessage = config.getString("profanity-filter.message", "<red>Watch your language.");
@@ -93,6 +97,12 @@ public final class ModerationService {
         this.advertAllowlist = List.copyOf(config.getStringList("anti-advert.allowlist"));
         this.advertMask = config.getString("anti-advert.mask", "[link removed]");
         this.advertMessage = config.getString("anti-advert.message", "<red>Advertising is not allowed.");
+
+        this.floodMaxRun = config.getInt("flood-filter.max-repeated-chars", 0);
+        this.notifyEnabled = config.getBoolean("moderation.notify.enabled", false);
+        this.notifyPermission = config.getString("moderation.notify.permission", "lpc.moderation.notify");
+        this.notifyFormat = config.getString("moderation.notify.format", "<red>[<type>] <player>: <message>");
+        this.noticeActionbar = "ACTIONBAR".equalsIgnoreCase(config.getString("moderation.notice-channel", "CHAT"));
     }
 
     /**
@@ -131,7 +141,7 @@ public final class ModerationService {
             lastMessages.put(id, new Recent(normalized, now));
         }
 
-        String text = raw;
+        String text = TextChecks.collapseRuns(raw, floodMaxRun);
 
         if (capsEnabled && !player.hasPermission("lpc.bypass.caps")
                 && TextChecks.isShout(text, capsMinLength, capsMaxRatio)) {
@@ -141,23 +151,87 @@ public final class ModerationService {
             text = text.toLowerCase(Locale.ROOT);
         }
 
-        if (profanityEnabled && !player.hasPermission("lpc.bypass.profanity")
-                && TextChecks.containsAny(TextChecks.normalize(text), profanityNormalized)) {
-            if (profanityBlock) {
-                return ModResult.block(notice(profanityMessage));
-            }
-            text = TextChecks.maskWords(text, profanityWords, profanityMaskChar);
+        ModResult content = filterContent(player, text);
+        if (content.isBlocked()) {
+            return content;
         }
+        text = content.text();
 
+        return text.equals(raw) ? ModResult.allow() : ModResult.transform(text);
+    }
+
+    /**
+     * Private messages: mute, profanity and advert only (no spam/repeat/caps, a conversation is
+     * naturally repetitive). Same outcomes as {@link #process}.
+     */
+    public ModResult processPrivate(Player player, String raw) {
+        if (muteService.isMuted(player, System.currentTimeMillis())) {
+            return ModResult.block(muteService.notice());
+        }
+        if (!enabled) {
+            return ModResult.allow();
+        }
+        ModResult content = filterContent(player, TextChecks.collapseRuns(raw, floodMaxRun));
+        if (content.isBlocked()) {
+            return content;
+        }
+        String text = content.text();
+        return text.equals(raw) ? ModResult.allow() : ModResult.transform(text);
+    }
+
+    /** Profanity then advert. Returns BLOCK, or TRANSFORM carrying the (possibly unchanged) text. */
+    private ModResult filterContent(Player player, String input) {
+        String text = input;
+        if (profanityEnabled && !player.hasPermission("lpc.bypass.profanity")) {
+            String masked = TextChecks.maskProfanity(text, profanityPatterns, profanityMaskChar);
+            if (!masked.equals(text)) {
+                alert(player, "Linguaggio", input);
+                if (profanityBlock) {
+                    return ModResult.block(notice(profanityMessage));
+                }
+                sendNotice(player, notice(profanityMessage));
+                text = masked;
+            }
+        }
         if (advertEnabled && !player.hasPermission("lpc.bypass.advert")
                 && TextChecks.containsAdvert(text, advertDetectIp, advertAllowlist)) {
+            alert(player, "Pubblicità", input);
             if (advertBlock) {
                 return ModResult.block(notice(advertMessage));
             }
+            sendNotice(player, notice(advertMessage));
             text = TextChecks.maskAdvert(text, advertDetectIp, advertAllowlist, advertMask);
         }
+        return ModResult.transform(text);
+    }
 
-        return text.equals(raw) ? ModResult.allow() : ModResult.transform(text);
+    /** Tells staff (permission lpc.moderation.notify) and the console what was filtered. */
+    private void alert(Player offender, String type, String original) {
+        plugin.getLogger().info("[Moderazione] " + type + " da " + offender.getName() + ": " + original);
+        if (!notifyEnabled) {
+            return;
+        }
+        Component line = MiniMessage.miniMessage().deserialize(notifyFormat,
+                Placeholder.unparsed("type", type),
+                Placeholder.unparsed("player", offender.getName()),
+                Placeholder.unparsed("message", original));
+        for (Player online : plugin.getServer().getOnlinePlayers()) {
+            if (online.hasPermission(notifyPermission)) {
+                plugin.send(online, line);
+            }
+        }
+    }
+
+    /** Shows a moderation notice to a player: actionbar (stile B) or chat, per config. */
+    public void sendNotice(Player player, Component notice) {
+        if (notice == null) {
+            return;
+        }
+        if (noticeActionbar && plugin.isPaper()) {
+            player.sendActionBar(notice);
+        } else {
+            plugin.send(player, notice);
+        }
     }
 
     private static Component notice(String raw) {
