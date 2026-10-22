@@ -312,10 +312,19 @@ public final class ChatGamesService {
     }
 
     private void playSound(String path) {
-        String sound = cfg.getString(path, "");
-        if (sound.isEmpty()) return;
+        String sound;
+        float volume = 0.4f, pitch = 1f;
+        var sec = cfg.getConfigurationSection(path);
+        if (sec != null) {
+            sound = sec.getString("sound", "");
+            volume = (float) sec.getDouble("volume", 0.4);
+            pitch = (float) sec.getDouble("pitch", 1.0);
+        } else {
+            sound = cfg.getString(path, "");
+        }
+        if (sound == null || sound.isEmpty()) return;
         for (Player p : players()) {
-            try { p.playSound(p.getLocation(), sound, 1f, 1f); } catch (Exception ignored) {}
+            try { p.playSound(p.getLocation(), sound, volume, pitch); } catch (Exception ignored) {}
         }
     }
 }
