@@ -200,11 +200,20 @@ public final class ChatGamesService {
         int wins = addWin(player);
         broadcast(msg("win"),
                 Placeholder.unparsed("player", player.getName()),
+                Placeholder.parsed("pname", rankName(player)),
                 Placeholder.unparsed("time", ChatGameLogic.formatSeconds(elapsed)),
                 Placeholder.unparsed("answer", g.shownAnswer),
                 Placeholder.unparsed("wins", ChatGameLogic.formatNumber(wins)),
                 Placeholder.parsed("rewards", String.join("<dark_gray>, </dark_gray>", rewardTexts)));
         playSound("sounds.win");
+    }
+
+    /** Nome col formato del rank (stesso placeholder della chat); senza PAPI cade sul nome semplice. */
+    private String rankName(Player p) {
+        String f = cfg.getString("rank-name-placeholder", "%rp_nameformat%");
+        if (plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") == null) return p.getName();
+        String r = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(p, f);
+        return r == null || r.isBlank() || r.equals(f) ? p.getName() : r;
     }
 
     private List<String> giveRewards(Player player, String type) {
